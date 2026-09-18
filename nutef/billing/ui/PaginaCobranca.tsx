@@ -64,7 +64,13 @@ export async function PaginaCobranca({ orgId, suporte }: { orgId: string; suport
         <Card className="p-5">
           <h3 className="font-semibold">Inteligência artificial neste mês</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            {teto > 0 ? <>{dinheiro(consumido)} usados de {dinheiro(teto)} incluídos no plano{s.ai_extra_credit_cents ? ` (+ ${dinheiro(s.ai_extra_credit_cents)} de crédito extra)` : ""}.</> : <>O crédito de IA é aplicado em até uma hora após a criação da conta.</>}
+            {teto > 0 ? (
+              <>
+                {dinheiro(consumido)} usados de {dinheiro(teto)}{" "}
+                {s.status === "trialing" ? <>incluídos no período de teste (o plano {plan.name} dá {dinheiro(plan.ai_credit_cents)}/mês)</> : <>incluídos no plano</>}
+                {s.ai_extra_credit_cents ? ` (+ ${dinheiro(s.ai_extra_credit_cents)} de crédito extra)` : ""}.
+              </>
+            ) : <>O crédito de IA é aplicado em até uma hora após a criação da conta.</>}
           </p>
           <div className="mt-3"><Barra usado={consumido} total={teto} /></div>
           <p className="mt-2 text-xs text-muted-foreground">
