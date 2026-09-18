@@ -31,8 +31,11 @@ a IA funcionando — os dois dependem do dono (celular; chave da OpenAI).
    uso". Faltava a organização NASCER no provedor da plataforma (o trigger do upstream semeia
    `anthropic`). `N0002_ia_da_plataforma.sql`: tabela `nutef_platform_settings` (`llm` =
    provedor/modelo do SaaS, editável pelo superadmin) + trigger que roda depois do do upstream.
-   Provado no Postgres descartável: org nova nasce `openai / gpt-5.4-mini`. **Pendente no
-   staging: a chave da OpenAI no `.env` (só o dono tem).**
+   Provado no Postgres descartável: org nova nasce `openai / gpt-5.4-mini`. **Chave da OpenAI no
+   `.env` do staging desde 2026-09-18 (validada: 136 modelos, gpt-5.4-mini disponível)** — a etapa
+   "Treinar" mostra "O cérebro dele: OpenAI (GPT)". Achado no caminho: a sonda de crédito do
+   upstream manda `max_completion_tokens: 1` e a família gpt-5 responde 400 (corrigido para 16;
+   candidato a PR upstream).
 2. **Aviso do teste grátis no "Tudo pronto!"** (`nutef/billing/ui/AvisoDeTeste.tsx`): até quando,
    quanto custa depois, onde acompanhar — nada é cobrado sem o cliente ver. Some se a org não
    está em trial.
@@ -42,7 +45,14 @@ a IA funcionando — os dois dependem do dono (celular; chave da OpenAI).
 4. **Conhecimento no wizard** (PRD §11 etapa 6) fica para a Fase 3, quando o "funcionário de IA"
    ganhar a experiência comercial — hoje o Acervo existe e funciona em IA › Acervo.
 
-## Medição (a fazer com o dono)
+## Medição
+
+**IA — feita em 2026-09-18:** "Contratar Ana" → criar → ensaio de 5 mensagens de cliente (clareamento,
+agendamento, convênio, aparelho infantil, endereço): 5 respostas na persona, 6–10 s cada, uma
+pergunta por vez, sem inventar preço; 1 tropeço de JSON no fechamento do turno (o motor re-tenta
+na fila; no ensaio aparece como 422 — não é do fork). Custo total dos ensaios: ver `ai_agent_runs`.
+
+**WhatsApp — a fazer com o dono (precisa do celular):**
 
 Cronômetro por etapa, num cliente novo, com número pareado e chave no `.env`:
 cadastro → WhatsApp pareado → funcionário criado → funil → 1ª mensagem respondida pela IA.
