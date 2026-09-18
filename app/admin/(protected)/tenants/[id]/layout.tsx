@@ -41,6 +41,8 @@ const TABS: TabItem[] = [
   { label: "Visão Geral", href: "", disabled: false },
   { label: "Saúde", href: "/health", disabled: false },
   { label: "Agente", href: "/agent", disabled: false },
+  // Fork Nutef CRM (nutef/registro-core.md): assinatura, faturas e ações de cobrança.
+  { label: "Cobrança", href: "/cobranca", disabled: false },
   { label: "Equipe", href: "/team", disabled: true },
   { label: "Uso", href: "/usage", disabled: true },
 ];

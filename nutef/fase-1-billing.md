@@ -82,9 +82,7 @@ trial, reduzido: 2000).
 
 - [x] **1A — schema + planos + trial + uso + tick + estágios** (sem gateway: provider `manual`) — código em 2026-09-18; schema aplicado no staging (org Nutef em trial até 25/09, teto de IA R$ 20 armado). A rota do tick e o gate só passam a rodar lá quando o staging trocar para a imagem do fork
 - [ ] **1B — Asaas**: cliente, assinatura, cobrança, webhook idempotente, conciliação
-- [ ] **1C — telas**: `/app/settings/cobranca` (plano, uso, faturas, pagar), painel no
-      `/admin/tenants/:id` (trocar plano, marcar pago, crédito extra), card MRR/trials/inadimplência
-      no `/admin/dashboard`, banner de `past_due` no shell
+- [x] **1C — telas** (código em 2026-09-18): `/app/settings/billing` (plano, situação, crédito de IA, faturas, como pagar), aba Cobrança em `/admin/tenants/:id` (trocar plano/ciclo, estender prazo, emitir fatura do período ou de crédito, marcar paga, cancelar) e `/admin/cobranca` (MRR/ARR, ativos, trials, atraso, faturas abertas, lista). Fica para depois: banner de `past_due` no shell do app e e-mail de aviso
 - [ ] **1D — enforcement**: convite e conexão de número checam o plano; compra de crédito de IA
 
 ## Core que a Fase 1 tocou/vai tocar (o registro de verdade é registro-core.md)
