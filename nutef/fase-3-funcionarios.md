@@ -25,6 +25,20 @@ disso é a 3B), e o **limite mensal por funcionário** (hoje o teto é por organ
   escolhe canal/funil/acervo e publica pela tela do motor (8 linhas de core: `inicial` no
   AgentForm).
 
+## Medido em 2026-09-18 (Ana, gpt-5.4-mini, chave da plataforma)
+
+19 ensaios de cliente no staging (clareamento, agendamento, convênio, aparelho infantil, endereço,
+limpeza, parcelamento, estacionamento, remarcação, dor, laser, valor, criança, implante):
+- 17 respostas na persona, 6–12 s cada; 2 tropeços no JSON do fechamento do turno (o motor
+  re-tenta na fila; no ensaio aparece como 422). O erro agora diz a FORMA do texto, para a
+  próxima vez.
+- Com o prompt da 1ª versão, a Ana CONFIRMAVA serviço sem base ("parcelamos sim", "tem
+  estacionamento sim", "fazemos implante"). A regra "não confirme o que não está na base"
+  entrou na conduta dos quatro modelos e, reensaiadas as mesmas perguntas, viraram "vou
+  confirmar com a equipe". É a diferença entre um funcionário e um chatbot que inventa.
+- Custo: todas as chamadas agora têm preço (fallback pelo catálogo) e debitam o teto de IA
+  (US$ 4 no trial) — 19 ensaios ≈ 3 centavos de dólar.
+
 ## 3B — próximo
 
 - Horário de atuação e avatar na tela do funcionário (vocabulário comercial sobre
