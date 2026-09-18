@@ -25,13 +25,14 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     # Fork Nutef CRM (nutef/registro-core.md): repositório PRIVADO roda em runner
     # de 2 vCPU/7 GB (o upstream público ganha 4 vCPU/16 GB). Duas consequências
     # medidas no PR #3: o `tsc` estoura o heap padrão do Node ("Ineffective
     # mark-compacts near heap limit", exit 134) → teto explícito; e a suíte de
     # unidade (866 arquivos) não cabe nos 15 min do upstream (cancelada aos 15:18
-    # com o typecheck já verde) → 40 min.
-    timeout-minutes: 40
+    # com o typecheck já verde) → 40 min (o teste do preâmbulo lê o teto nos
+    # primeiros 400 caracteres do job — por isso ele vem antes deste comentário).
     env:
       NODE_OPTIONS: --max-old-space-size=5120
     steps:
