@@ -71,10 +71,18 @@ export function montarRequisicaoDeProva(
       // cai nessa família. `max_completion_tokens` é aceito em toda a família
       // de chat completions, raciocínio ou não, então não há motivo para
       // ramificar por modelo aqui.
+      //
+      // Fork Nutef CRM (nutef/registro-core.md; candidato a PR upstream): com
+      // `max_completion_tokens: 1` a família gpt-5 responde HTTP 400 — "Could
+      // not finish the message because max_tokens or model output limit was
+      // reached" — porque o raciocínio consome o orçamento antes do 1º token
+      // visível. Medido em 2026-09-18 com chave real: gpt-5.4-mini e
+      // gpt-5.6-terra (o padrão curado) 400 com 1, 200 com 16 (usage 9);
+      // gpt-4o-mini 200 nos dois. 16 é o menor valor redondo que passa.
       return {
         url: "https://api.openai.com/v1/chat/completions",
         headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-        body: { model: modelo, max_completion_tokens: 1, messages: msg },
+        body: { model: modelo, max_completion_tokens: 16, messages: msg },
       };
     case "openrouter":
       return {
