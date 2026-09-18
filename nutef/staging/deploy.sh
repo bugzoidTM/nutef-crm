@@ -7,6 +7,7 @@
 #   bash nutef/staging/deploy.sh crm        sobe app/worker/scheduler/waha/redis
 #   bash nutef/staging/deploy.sh validar    sondas: health, login, worker, scheduler, redis, waha
 #   bash nutef/staging/deploy.sh tudo       init → supabase → schema → crm → validar
+#   bash nutef/staging/deploy.sh imagens-locais|imagens-registro   de onde vêm as imagens (ver abaixo)
 #
 # Espelha o que `hostgator-setup-kit/install.sh` faz numa VPS crua (gerar
 # segredos, aplicar baseline, criar o dono via GoTrue + SQL), trocando o
@@ -269,8 +270,33 @@ cmd_validar() {
   [ "$falhas" = 0 ] && c_grn "✓ staging válido" || die "$falhas sonda(s) falharam"
 }
 
+# Imagem construída NESTA VPS (só staging; produção puxa do registro):
+#   bash nutef/staging/deploy.sh imagens-locais   # constrói as 3 e aponta o .env para elas
+#   bash nutef/staging/deploy.sh imagens-registro # volta a apontar para o registro (IMG_NS + VERSAO_STAGING)
+# A doutrina de packaging do upstream proíbe construir na máquina do CLIENTE;
+# o staging é a nossa, e é o único jeito de provar pela tela uma mudança do
+# fork antes de o CI publicar a imagem.
+cmd_imagens_locais() {
+  carregar_env
+  local sha; sha=$(git -C "$REPO" rev-parse --short HEAD)
+  step "imagens-locais — construindo app/worker/scheduler em $sha"
+  docker build -q -f "$REPO/Dockerfile" --build-arg APP_VERSION="local-$sha" -t nutef-crm-app:staging "$REPO" >/dev/null
+  docker build -q -f "$REPO/Dockerfile.worker" --build-arg APP_VERSION="local-$sha" -t nutef-crm-worker:staging "$REPO" >/dev/null
+  docker build -q -f "$REPO/Dockerfile.scheduler" --build-arg APP_VERSION="local-$sha" -t nutef-crm-scheduler:staging "$REPO" >/dev/null
+  sed -i -E 's#^APP_IMAGE=.*#APP_IMAGE=nutef-crm-app:staging#; s#^WORKER_IMAGE=.*#WORKER_IMAGE=nutef-crm-worker:staging#; s#^SCHEDULER_IMAGE=.*#SCHEDULER_IMAGE=nutef-crm-scheduler:staging#' "$ENV_FILE"
+  c_grn "✓ 3 imagens locais (local-$sha); .env aponta para elas — rode: $0 crm"
+}
+cmd_imagens_registro() {
+  carregar_env
+  local img_ns; img_ns=$(sed -nE 's/^IMG_NS="([^"]+)"$/\1/p' "$REPO/hostgator-setup-kit/_common.sh")
+  sed -i -E "s#^APP_IMAGE=.*#APP_IMAGE=$img_ns/deskcommcrm:$VERSAO_STAGING#; s#^WORKER_IMAGE=.*#WORKER_IMAGE=$img_ns/deskcomm-worker:$VERSAO_STAGING#; s#^SCHEDULER_IMAGE=.*#SCHEDULER_IMAGE=$img_ns/deskcomm-scheduler:$VERSAO_STAGING#" "$ENV_FILE"
+  c_grn "✓ .env aponta para $img_ns:$VERSAO_STAGING — rode: $0 crm"
+}
+
 case "${1:-}" in
   init)     cmd_init ;;
+  imagens-locais)   cmd_imagens_locais ;;
+  imagens-registro) cmd_imagens_registro ;;
   supabase) cmd_supabase ;;
   schema)   cmd_schema ;;
   crm)      cmd_crm ;;

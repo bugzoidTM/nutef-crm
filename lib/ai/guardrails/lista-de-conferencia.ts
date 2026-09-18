@@ -88,6 +88,19 @@ export const CONFERENCIAS_DE_SAIDA: readonly ConferenciaDeSaida[] = [
      camada: null,
   },
   {
+    // Fork Nutef CRM (nutef/registro-core.md): estágio 2 da régua de cobrança.
+    nome: "billing",
+    rotulo: "Pausar os envios automáticos quando a assinatura está em atraso",
+    oQueProtege:
+      "Com a fatura em atraso há alguns dias, os funcionários de IA e os follow-ups param de " +
+      "enviar; sua equipe continua respondendo pela Caixa de Entrada. O pagamento reativa na hora.",
+    escolha: null,
+    porQueNaoSeDesliga:
+      "É a regra comercial do plano: o serviço automático acompanha a assinatura. Ninguém perde " +
+      "dado nem conversa — só a automação espera o pagamento.",
+    camada: null,
+  },
+  {
     nome: "pacing",
     rotulo: "Segurar o ritmo de envio",
     oQueProtege:

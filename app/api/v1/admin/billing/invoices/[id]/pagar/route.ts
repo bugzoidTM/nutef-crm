@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ok, fail } from "@/lib/api/wrappers";
 import { audit } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSupportWrite } from "@/lib/impersonate/support";
 import { abrirRotaAdmin, ehResposta } from "@/nutef/billing/rota-admin";
 import { confirmarPagamento } from "@/nutef/billing/db";
 import { organizacaoDaFatura } from "@/nutef/billing/admin";
@@ -21,7 +22,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return fail("internal_error", e instanceof Error ? e.message : "invoice lookup failed", 500);
   }
   if (!orgId) return fail("not_found", "Fatura não encontrada", 404);
-  const ctx = await abrirRotaAdmin(req, { escrita: orgId, body: bodySchema });
+  const supportDenied = await requireSupportWrite(orgId);
+  if (supportDenied) return supportDenied;
+  const ctx = await abrirRotaAdmin(req, { body: bodySchema });
   if (ehResposta(ctx)) return ctx;
   try {
     const r = await confirmarPagamento(admin, id, ctx.admin.user.id);

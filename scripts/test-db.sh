@@ -13,7 +13,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BASELINE="${TEST_DB_BASELINE:-$ROOT/supabase/baseline.sql}"  # sobreponível: o fork Nutef aplica baseline + apêndice próprio (nutef/scripts/test-db.sh)
+# Sobreponível: o fork Nutef aplica baseline + apêndice próprio (nutef/scripts/test-db.sh).
+BASELINE="${TEST_DB_BASELINE:-$ROOT/supabase/baseline.sql}"
 # A PORTA: quem PEDE escolhe; quem não pede deixa o Docker escolher.
 #
 # Antes era 54329 fixo, e duas sessões rodando `test:db` ao mesmo tempo colidiam:

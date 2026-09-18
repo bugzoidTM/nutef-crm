@@ -1,14 +1,17 @@
 /**
- * O cabeçalho comum das rotas admin de billing: platform admin + guarda de
- * suporte (escrita) + parse do body com Zod. Devolve a resposta de erro pronta
- * ou o contexto para seguir. Mantém cada route.ts com uma tela só de lógica.
+ * O cabeçalho comum das rotas admin de billing: platform admin + parse do body
+ * com Zod. Devolve a resposta de erro pronta ou o contexto para seguir.
+ *
+ * A guarda de suporte (`requireSupportWrite`) fica de FORA de propósito: o gate
+ * tests/unit/suporte-cobertura-de-efeitos varre cada handler mutante procurando
+ * a chamada literal, e escondê-la num helper deixaria o gate cego. Cada rota
+ * que escreve a chama na primeira linha, com o organization_id do path.
  */
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
 import type { z } from "zod";
 import { fail } from "@/lib/api/wrappers";
 import { requirePlatformAdmin, type PlatformAdminContext } from "@/lib/auth/requirePlatformAdmin";
-import { requireSupportWrite } from "@/lib/impersonate/support";
 
 export interface ContextoAdmin<B> {
   requestId: string;
@@ -18,13 +21,9 @@ export interface ContextoAdmin<B> {
 
 export async function abrirRotaAdmin<S extends z.ZodTypeAny>(
   req: NextRequest,
-  opts: { escrita?: string | true; body?: S },
+  opts: { body?: S },
 ): Promise<ContextoAdmin<z.infer<S>> | Response> {
   const requestId = randomUUID();
-  if (opts.escrita !== undefined) {
-    const negado = await requireSupportWrite(opts.escrita === true ? undefined : opts.escrita);
-    if (negado) return negado;
-  }
   let admin: PlatformAdminContext;
   try {
     admin = await requirePlatformAdmin();

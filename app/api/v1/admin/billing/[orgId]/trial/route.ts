@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ok, fail } from "@/lib/api/wrappers";
 import { audit } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSupportWrite } from "@/lib/impersonate/support";
 import { abrirRotaAdmin, ehResposta } from "@/nutef/billing/rota-admin";
 import { estenderPrazo } from "@/nutef/billing/admin";
 
@@ -12,7 +13,11 @@ const bodySchema = z.object({ dias: z.number().int().min(1).max(90), reason: z.s
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
-  const ctx = await abrirRotaAdmin(req, { escrita: orgId, body: bodySchema });
+  // Explícito aqui (e não só dentro do helper): tests/unit/suporte-cobertura-de-efeitos
+  // varre cada handler mutante procurando esta chamada.
+  const supportDenied = await requireSupportWrite(orgId);
+  if (supportDenied) return supportDenied;
+  const ctx = await abrirRotaAdmin(req, { body: bodySchema });
   if (ehResposta(ctx)) return ctx;
   try {
     const r = await estenderPrazo(createAdminClient(), orgId, ctx.body.dias);
