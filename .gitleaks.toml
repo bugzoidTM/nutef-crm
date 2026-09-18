@@ -1,0 +1,38 @@
+# Nutef CRM — configuração do gitleaks (PRD §35: secret scanning no CI).
+#
+# Varredura de LINHA DE BASE feita em 2026-09-18 sobre a árvore e os 4.192
+# commits do upstream: 22 achados, nenhum segredo real — fixtures de teste,
+# evidências de e2e com credencial fictícia, chaves de REGISTRO (strings como
+# "followup-gatilho-etapa.v1", que o detector genérico confunde com API key) e
+# um trecho do MANIFEST de migrations. Cada exceção abaixo nomeia o que cobre;
+# a lista só deve ENCOLHER. Achado novo fora dela é vermelho de verdade.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Falsos positivos medidos na linha de base (2026-09-18)"
+paths = [
+  # fixtures e sondas de teste — segredo ali é inventado por desenho
+  '''(^|/)tests/''',
+  '''\.test\.(ts|tsx|sh)$''',
+  # evidência de execução de e2e com credencial de fixture
+  '''(^|/)evidence/''',
+  # registro humano das migrations cita uma chave de exemplo redigida
+  '''(^|/)supabase/migrations/MANIFEST\.md$''',
+  # o kit valida segredos com valores de exemplo dentro do próprio teste
+  '''(^|/)hostgator-setup-kit/test-validators\.sh$''',
+  # modelo de .env: chaves vazias por definição
+  '''(^|/)nutef/staging/env\.example$''',
+  '''(^|/)\.env\.(hostgator\.)?example$''',
+]
+# Um único achado histórico, herdado do upstream: o commit d2595e3d (abril de
+# 2026) subiu um `.env.waha` com o HASH da chave do WAHA de um ambiente de
+# desenvolvimento do mantenedor; o commit seguinte (d45425fa) tirou o arquivo do
+# tracking. Não é segredo nosso e não está em nenhuma árvore atual — fica aqui
+# para a varredura de histórico completo passar sem esconder achado NOVO.
+commits = ["d2595e3d554024d45a5351c623b4d7f9b865ed24"]
+regexes = [
+  # chaves de registro/versionamento de handlers e preferências — não são segredo
+  '''[a-z-]+\.v[0-9]+''',
+]

@@ -1,0 +1,292 @@
+# Nutef CRM — STAGING — Supabase dedicado (Docker Swarm)
+#
+# Por que um Supabase próprio: o CRM exige Auth + Storage + RLS do Supabase de
+# verdade (login do app não funciona em Postgres cru), e o Supabase que já vive
+# nesta VPS é PRODUÇÃO de outros produtos — o baseline.sql do CRM instala ~200
+# objetos em `public`, e dividir esse schema com outro sistema seria pedir
+# conflito. Este stack é um clone enxuto do template Orion que roda ao lado,
+# com as mesmas versões de imagem (conjunto conhecido-bom nesta máquina).
+#
+# O que ficou de FORA de propósito: analytics (logflare), vector, supavisor e
+# edge functions — nenhum deles é usado pelo CRM, e o logflare sozinho pesa
+# ~1 GB. O Studio entra porque inspecionar o banco pela tela vale o custo.
+#
+# NOMES DE SERVIÇO PREFIXADOS (`crm-sb-*`) — não é estilo, é defesa. A rede
+# `Nutef` é compartilhada por todas as stacks desta VPS e o nome curto do serviço
+# vira DNS nela: hoje já existem 4 serviços chamados `db` e 8 chamados `app`
+# (medido com `docker service ls`), e o `cortex_db` já roubou o endereço do
+# `supabase_db` uma vez. Só o Kong entra na `Nutef` (o Traefik precisa achá-lo);
+# tudo o mais vive na overlay privada `nutefcrm-staging`, onde os nomes não
+# colidem com ninguém.
+#
+# Deploy: `bash nutef/staging/deploy.sh supabase` (interpola o .env e sobe).
+# Nunca `docker stack deploy` direto — sem o .env no ambiente, todo `${VAR}`
+# vira string vazia e o Postgres nasce sem senha.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  crm-sb-db:
+    image: supabase/postgres:15.1.1.78
+    command:
+      - postgres
+      - "-c"
+      - config_file=/etc/postgresql/postgresql.conf
+      - "-c"
+      - log_min_messages=fatal
+    volumes:
+      - ${DEPLOY_DIR}/supabase/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - ${DEPLOY_DIR}/supabase/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - ${DEPLOY_DIR}/supabase/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ${DEPLOY_DIR}/supabase/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      - ${DEPLOY_DIR}/supabase/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
+      - ${DEPLOY_DIR}/supabase/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      - ${DEPLOY_DIR}/supabase/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
+      - ${DEPLOY_DIR}/supabase/db/data:/var/lib/postgresql/data:Z
+      - crm-sb-db-config:/etc/postgresql-custom
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: "5432"
+      POSTGRES_PORT: "5432"
+      POSTGRES_PASSWORD: ${SB_POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      PGDATABASE: postgres
+      JWT_SECRET: ${SB_JWT_SECRET}
+      JWT_EXP: "3600"
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          memory: 1536M
+
+  crm-sb-auth:
+    image: supabase/gotrue:v2.158.1
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: https://${SB_DOMAIN}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${SB_POSTGRES_PASSWORD}@crm-sb-db:5432/postgres
+      # SITE_URL é o CRM, não o Kong: é para onde o link do e-mail de confirmação
+      # e de recuperação de senha volta. O template do upstream (marca-emails.sh)
+      # empurra os templates por API do Supabase cloud; no self-host os mesmos
+      # caminhos são configurados aqui, via GOTRUE_MAILER_URLPATHS_*.
+      GOTRUE_SITE_URL: https://${APP_DOMAIN}
+      GOTRUE_URI_ALLOW_LIST: https://${APP_DOMAIN}/**
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_SECRET: ${SB_JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      # Sem SMTP no staging: confirmação automática. Em produção o e-mail de
+      # confirmação É a primeira impressão do cliente e precisa de SMTP real.
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_SMS_AUTOCONFIRM: "false"
+      # MFA TOTP é recurso do CRM (opcional, ligado por quem administra).
+      GOTRUE_MFA_ENABLED: "true"
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-sb-rest:
+    image: postgrest/postgrest:v12.2.0
+    command: "postgrest"
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${SB_POSTGRES_PASSWORD}@crm-sb-db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${SB_JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_SECRET: ${SB_JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: "3600"
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-sb-realtime:
+    image: supabase/realtime:v2.30.34
+    environment:
+      PORT: "4000"
+      API_JWT_SECRET: ${SB_JWT_SECRET}
+      SECRET_KEY_BASE: ${SB_SECRET_KEY_BASE}
+      APP_NAME: realtime
+      DB_HOST: crm-sb-db
+      DB_PORT: "5432"
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${SB_POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: supabaserealtime
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      SEED_SELF_HOST: "true"
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-sb-storage:
+    image: supabase/storage-api:v1.11.13
+    volumes:
+      - ${DEPLOY_DIR}/supabase/storage:/var/lib/storage:z
+    environment:
+      ANON_KEY: ${SB_ANON_KEY}
+      SERVICE_KEY: ${SB_SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://crm-sb-rest:3000
+      PGRST_JWT_SECRET: ${SB_JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${SB_POSTGRES_PASSWORD}@crm-sb-db:5432/postgres
+      FILE_SIZE_LIMIT: "52428800"
+      # Disco local, não MinIO: staging não precisa de S3, e menos peças = menos
+      # coisas para quebrar antes de o produto ser validado.
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://crm-sb-imgproxy:5001
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-sb-imgproxy:
+    image: darthsim/imgproxy:v3.8.0
+    volumes:
+      - ${DEPLOY_DIR}/supabase/storage:/var/lib/storage:z
+    environment:
+      IMGPROXY_BIND: ":5001"
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-sb-meta:
+    image: supabase/postgres-meta:v0.84.2
+    environment:
+      PG_META_PORT: "8080"
+      PG_META_DB_HOST: crm-sb-db
+      PG_META_DB_PORT: "5432"
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${SB_POSTGRES_PASSWORD}
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-sb-studio:
+    image: supabase/studio:20241014-c083b3b
+    environment:
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_ENABLE_LOGS: "false"
+      DEFAULT_ORGANIZATION_NAME: Nutef
+      DEFAULT_PROJECT_NAME: Nutef CRM (staging)
+      STUDIO_PG_META_URL: http://crm-sb-meta:8080
+      POSTGRES_PASSWORD: ${SB_POSTGRES_PASSWORD}
+      SUPABASE_URL: http://crm-sb-kong:8000
+      SUPABASE_PUBLIC_URL: https://${SB_DOMAIN}
+      SUPABASE_ANON_KEY: ${SB_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SB_SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${SB_JWT_SECRET}
+    networks:
+      - nutefcrm-staging
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-sb-kong:
+    image: kong:2.8.1
+    # O kong.yml é template com $VARIÁVEIS; o eval as substitui na subida.
+    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    volumes:
+      - ${DEPLOY_DIR}/supabase/api/kong.yml:/home/kong/temp.yml:ro
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      SUPABASE_ANON_KEY: ${SB_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SB_SERVICE_ROLE_KEY}
+      DASHBOARD_USERNAME: ${SB_DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${SB_DASHBOARD_PASSWORD}
+    networks:
+      - nutefcrm-staging
+      - Nutef
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=Nutef
+        - traefik.http.routers.crm-sb-kong.rule=Host(`${SB_DOMAIN}`)
+        - traefik.http.routers.crm-sb-kong.entrypoints=websecure
+        - traefik.http.routers.crm-sb-kong.tls=true
+        - traefik.http.routers.crm-sb-kong.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.crm-sb-kong.service=crm-sb-kong
+        - traefik.http.services.crm-sb-kong.loadbalancer.server.port=8000
+
+volumes:
+  crm-sb-db-config:
+
+networks:
+  nutefcrm-staging:
+    external: true
+  Nutef:
+    external: true

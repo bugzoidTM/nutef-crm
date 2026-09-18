@@ -1,0 +1,194 @@
+# Nutef CRM — STAGING — app + worker + scheduler + WAHA + Redis (Docker Swarm)
+#
+# Tradução do `docker-compose.prod.yml` + `docker-compose.traefik.yml` do
+# upstream para a swarm desta VPS. Por que não usar os dois arquivos direto: o
+# Traefik daqui roda com `--providers.docker.swarmMode=true` e só enxerga
+# etiquetas de SERVIÇO de stack — um `docker compose up` sobe contêineres
+# soltos, que ele ignora, e o domínio responderia 404 com tudo `healthy`.
+#
+# O que se preservou do upstream, de propósito, para o produto não perceber a
+# diferença:
+#   • as variáveis vêm inteiras do `.env` (env_file), como no compose original;
+#   • os NOMES que o código do upstream tem fixos continuam resolvendo — o
+#     scheduler chama `http://app:3000` (constante em docker/scheduler/
+#     entrypoint.sh, não configuração), e o compose usa `waha`, `redis`, `srh`.
+#     Aqui cada serviço é `crm-*` (a rede `Nutef` já tem 8 serviços chamados
+#     `app`) e recebe o nome do compose como ALIAS só na overlay privada
+#     `nutefcrm-staging`, onde não colide com ninguém;
+#   • os limites de memória e os healthchecks são os mesmos.
+#
+# Imagens: vêm do .env (APP_IMAGE/WORKER_IMAGE/SCHEDULER_IMAGE). O namespace do
+# registro é o IMG_NS de hostgator-setup-kit/_common.sh (o deploy.sh deriva de
+# lá — o gate namespace-das-imagens proíbe o literal em qualquer outro arquivo);
+# `deploy.sh imagens-locais` aponta para imagens construídas nesta VPS.
+#
+# Deploy: `bash nutef/staging/deploy.sh crm`.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  crm-app:
+    image: ${APP_IMAGE}
+    env_file: ${DEPLOY_DIR}/.env
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(3000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      nutefcrm-staging:
+        aliases: [app]
+      Nutef: {}
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          memory: 768M
+      update_config:
+        order: start-first
+        failure_action: rollback
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=Nutef
+        - traefik.http.routers.crm-app.rule=Host(`${APP_DOMAIN}`)
+        - traefik.http.routers.crm-app.entrypoints=websecure
+        - traefik.http.routers.crm-app.tls=true
+        - traefik.http.routers.crm-app.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.crm-app.service=crm-app
+        - traefik.http.routers.crm-app.middlewares=crm-app-compress
+        - traefik.http.services.crm-app.loadbalancer.server.port=3000
+        - traefik.http.middlewares.crm-app-compress.compress=true
+        # Equivalente do `respond @waha_global 403` do Caddyfile (e do router
+        # `deskcomm-waha-block` do docker-compose.traefik.yml): o webhook GLOBAL
+        # do WAHA, sem token na URL, nunca é alcançável de fora — só a variante
+        # por token (/api/v1/webhooks/waha/<token>) fica pública. ipallowlist com
+        # um endereço de documentação (RFC 5737) = ninguém passa = 403. É `ipwhitelist`
+        # (nome do Traefik v2, que é o desta VPS); o upstream escreve `ipallowlist`,
+        # que só existe no v3 — no 2.11 o middleware desconhecido derruba o router
+        # e o webhook global fica ABERTO em silêncio (medido: respondia 400 do app).
+        - traefik.http.routers.crm-app-waha-block.rule=Host(`${APP_DOMAIN}`) && Path(`/api/v1/webhooks/waha`)
+        - traefik.http.routers.crm-app-waha-block.entrypoints=websecure
+        - traefik.http.routers.crm-app-waha-block.tls=true
+        - traefik.http.routers.crm-app-waha-block.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.crm-app-waha-block.priority=1000
+        - traefik.http.routers.crm-app-waha-block.service=crm-app
+        - traefik.http.routers.crm-app-waha-block.middlewares=crm-app-deny
+        - traefik.http.middlewares.crm-app-deny.ipwhitelist.sourcerange=192.0.2.1/32
+
+  crm-worker:
+    image: ${WORKER_IMAGE}
+    env_file: ${DEPLOY_DIR}/.env
+    environment:
+      WAHA_API_BASE_URL: http://waha:3000
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8787/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      nutefcrm-staging:
+        aliases: [worker]
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          memory: 512M
+
+  crm-scheduler:
+    image: ${SCHEDULER_IMAGE}
+    environment:
+      TZ: UTC
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+    networks:
+      nutefcrm-staging:
+        aliases: [scheduler]
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-waha:
+    image: ${WAHA_IMAGE}
+    environment:
+      WAHA_API_KEY: "sha512:${WAHA_API_KEY_SHA512}"
+      WHATSAPP_HOOK_URL: ${WAHA_WEBHOOK_BASE_URL}/api/v1/webhooks/waha
+      WHATSAPP_HOOK_EVENTS: "message.any,message.ack,message.edited,message.revoked,session.status,state.change"
+      WHATSAPP_HOOK_HMAC: ${WAHA_HMAC_SECRET}
+      WHATSAPP_DEFAULT_ENGINE: ${WHATSAPP_DEFAULT_ENGINE:-NOWEB}
+      WAHA_DASHBOARD_ENABLED: "false"
+      WHATSAPP_RESTART_ALL_SESSIONS: "True"
+    volumes:
+      - crm-waha-data:/app/.sessions
+      - crm-waha-media:/app/.media
+    networks:
+      nutefcrm-staging:
+        aliases: [waha]
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          memory: 1280M
+
+  crm-redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      nutefcrm-staging:
+        aliases: [redis]
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  crm-srh:
+    image: hiett/serverless-redis-http@sha256:5b0bb9239fce53abf87b2018a7a0deb9ec7bd900c5360738fe5fbeeb426f9150
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: ${SRH_TOKEN}
+      SRH_CONNECTION_STRING: "redis://redis:6379"
+    networks:
+      nutefcrm-staging:
+        aliases: [srh]
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+volumes:
+  crm-waha-data:
+  crm-waha-media:
+
+networks:
+  nutefcrm-staging:
+    external: true
+  Nutef:
+    external: true
