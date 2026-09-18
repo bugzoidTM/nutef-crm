@@ -7,9 +7,11 @@
 #               push: o commit) com a config `.gitleaks.toml`, que documenta
 #               cada falso positivo da linha de base. Achado = vermelho.
 #   audit     — `pnpm audit` de vulnerabilidades ALTAS+; informativo por
-#               enquanto (continue-on-error): o upstream já tem Dependabot
-#               semanal, e uma CVE transitiva sem fix não deve travar a main.
-#               Vira bloqueante quando a Fase 1 (billing) entrar em produção.
+#               enquanto (continue-on-error NO PASSO — no job ele deixa o check
+#               vermelho mesmo assim, medido no PR #3): o upstream já tem
+#               Dependabot semanal, e uma CVE transitiva sem fix não deve
+#               travar a main. Vira bloqueante quando a Fase 1 (billing)
+#               entrar em produção.
 name: seguranca
 on:
   pull_request:
@@ -20,6 +22,12 @@ permissions:
 jobs:
   segredos:
     runs-on: ubuntu-latest
+    # A action lista os commits do PR pela API do GitHub — sem
+    # `pull-requests: read` ela morre com "Resource not accessible by
+    # integration" (medido no PR #3).
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -31,10 +39,10 @@ jobs:
           GITLEAKS_ENABLE_SUMMARY: "true"
   audit:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar-node
         timeout-minutes: 5
-      - name: pnpm audit (alta ou crítica)
+      - name: pnpm audit (alta ou crítica) — informativo
+        continue-on-error: true
         run: pnpm audit --audit-level=high
