@@ -989,7 +989,12 @@ jobs:
           # (`✓ 12 [chromium] › tests/e2e/x.spec.ts:9:5 › título (3.4s)`), e a
           # soma por arquivo sai de um `gh run view <id> --log`. Custo medido:
           # ~240 linhas a mais de log, zero segundo de execução.
-          pnpm exec playwright test --workers=1 $LISTA --reporter=list
+          # Fork Nutef CRM (nutef/registro-core.md): runner de 2 vCPU — o servidor
+          # Next responde mais devagar e asserções de 5 s (toBeVisible) caem por
+          # tempo em specs que o upstream passa a 4 vCPU (14 falhas medidas no
+          # PR #3, todas de tempo). Um retry: falha de produto continua vermelha
+          # (falha duas vezes); falha de relógio passa na segunda.
+          pnpm exec playwright test --workers=1 $LISTA --retries=1 --reporter=list
         env:
           # Só o que NÃO vem do `.env.e2e`: isto é ajuste de CI, não config do
           # produto. CI = 1 IP para todos os specs, e o teto de produção
