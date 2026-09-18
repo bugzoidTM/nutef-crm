@@ -187,9 +187,14 @@ cmd_schema() {
     psql_privado "$DB" -f - < "$REPO/supabase/baseline.sql" > "$log" 2>&1 || true
     c_ylw "baseline reaplicado em banco existente; erros ignorados por desenho — $(grep -c ERROR "$log" || true) linhas ERROR em $log"
   fi
+  # Apêndice do fork (nutef/db/baseline-nutef.sql): SEMPRE com ON_ERROR_STOP —
+  # ele é idempotente por inteiro, então erro ali é erro de verdade.
+  bash "$REPO/nutef/scripts/gerar-baseline.sh" >/dev/null
+  psql_privado "$DB" -v ON_ERROR_STOP=1 -f - < "$REPO/nutef/db/baseline-nutef.sql" >> "$log" 2>&1 \
+    || die "apêndice do fork falhou (log: $log)"
   local n
   n=$(psql_privado "$DB" -tAc "select count(*) from information_schema.tables where table_schema='public'")
-  c_grn "✓ schema aplicado — $n tabelas em public"
+  c_grn "✓ schema aplicado — $n tabelas em public ($(psql_privado "$DB" -tAc "select count(*) from public.billing_plans") planos de billing)"
 
   step "schema — dono e super-admin ($OWNER_EMAIL)"
   # 1) usuário no GoTrue (admin API), idempotente: 422 se já existe

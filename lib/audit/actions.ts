@@ -600,6 +600,14 @@ export const AUDIT_ACTIONS = [
   // "quando esta chave foi trocada, e por quem" é a pergunta que só esta linha
   // responde — a coluna `updated_at` se move por qualquer motivo.
   "ai.credential_updated",
+  // --- billing (camada do fork Nutef CRM — nutef/fase-1-billing.md) -----------
+  "billing.tick_run",
+  "billing.invoice_paid",
+  "billing.invoice_issued",
+  "billing.plan_changed",
+  "billing.credit_added",
+  "billing.subscription_cancelled",
+  "billing.webhook_received",
 ] as const;
 
 /** Um código de auditoria. Derivado de `AUDIT_ACTIONS` — não redigite a lista. */

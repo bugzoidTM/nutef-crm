@@ -102,6 +102,10 @@ CRONS="
 30 3 * * *|120|api/v1/cron/kb-conversations-batch
 15 4 * * *|60|api/v1/cron/sync-model-catalog
 40 4 * * *|120|api/v1/cron/data-retention
+# Fork Nutef CRM: régua de cobrança, uso do dia e crédito de IA (nutef/fase-1-billing.md).
+# De hora em hora, não diário: é o sync do teto de IA que dá a uma org recém-criada o
+# crédito do trial — e um dia inteiro de IA sem teto é exatamente o que o plano não vende.
+10 * * * *|120|api/v1/cron/billing-tick
 "
 
 # CRONTAB_PATH é ponto de injeção do teste (tests/shell/scheduler-entrypoint.test.sh).
