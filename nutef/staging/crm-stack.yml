@@ -17,10 +17,10 @@
 #     `nutefcrm-staging`, onde não colide com ninguém;
 #   • os limites de memória e os healthchecks são os mesmos.
 #
-# Imagens: enquanto o CI do fork não publica as suas, ficam as do upstream por
-# NÚMERO de versão (o fork é idêntico ao upstream nesta versão; a marca é
-# configuração de runtime, não compilação — docs/white-label.md). Trocar para
-# `ghcr.io/bugzoidtm/*` é editar três linhas do .env, não este arquivo.
+# Imagens: vêm do .env (APP_IMAGE/WORKER_IMAGE/SCHEDULER_IMAGE). O namespace do
+# registro é o IMG_NS de hostgator-setup-kit/_common.sh (o deploy.sh deriva de
+# lá — o gate namespace-das-imagens proíbe o literal em qualquer outro arquivo);
+# `deploy.sh imagens-locais` aponta para imagens construídas nesta VPS.
 #
 # Deploy: `bash nutef/staging/deploy.sh crm`.
 
