@@ -49,8 +49,13 @@ const ACTION = join(process.cwd(), ".github/actions/preparar-node/action.yml");
  */
 const TETOS: Record<string, { minutos: number; razao: string }> = {
   "ci.yml::verify": {
-    minutos: 15,
-    razao: "trabalho real medido: p90 594s, máximo 609s em 51 verdes — folga de ~4m45",
+    // Fork Nutef CRM (nutef/registro-core.md): repositório PRIVADO roda em runner
+    // de 2 vCPU/7 GB, não nos 4 vCPU/16 GB do upstream público. Medido no PR #3:
+    // typecheck+lint+gates em ~6 min e a suíte de unidade cancelada aos 15:18.
+    minutos: 40,
+    razao:
+      "runner de repo privado tem metade dos núcleos do upstream: os 15 min medidos lá " +
+      "(p90 594s) cancelam a suíte aqui no meio — medido no PR #3 do fork",
   },
   // O agregado `invariants` NÃO tem teto de propósito: ele não roda a suíte, só
   // lê o desfecho de `needs`. O teto que denuncia a suíte crescendo vive na perna
