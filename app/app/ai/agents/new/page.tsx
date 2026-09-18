@@ -9,6 +9,8 @@ import type { CredentialRow } from "@/hooks/ai/useCredentials";
 import { lerAmbiente } from "@/lib/instalacao/ambiente";
 
 import { AgentForm } from "../[id]/_components/AgentForm";
+// Fork Nutef CRM (nutef/registro-core.md): `?modelo=` pré-preenche a tela com um funcionário pronto.
+import { preenchimentoDoModelo } from "@/nutef/funcionarios/preenchimento";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,7 @@ function provedoresDaInstalacao(): string[] {
     .map(([id]) => id);
 }
 
-export default async function NewAgentPage() {
+export default async function NewAgentPage({ searchParams }: { searchParams: Promise<{ modelo?: string }> }) {
   const user = await requireAuth();
   const activeOrg = await resolveActiveOrg(user);
   if (!activeOrg) redirect("/app");
@@ -48,6 +50,7 @@ export default async function NewAgentPage() {
   ]);
 
   const credentials = (credentialsRes.data ?? []) as unknown as CredentialRow[];
+  const inicial = await preenchimentoDoModelo((await searchParams).modelo, activeOrg.orgId, activeOrg.name);
 
   return (
     <div className="flex h-full flex-col gap-6 p-6">
@@ -56,6 +59,7 @@ export default async function NewAgentPage() {
         credentials={credentials}
         provedoresDaInstalacao={provedoresDaInstalacao()}
         channelSessions={channelSessions}
+        inicial={inicial ?? undefined}
       />
     </div>
   );

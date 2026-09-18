@@ -48,11 +48,17 @@ export function AgentsList({ initialData, canWrite }: Props) {
           )}
         </p>
         {canWrite && (
-          <Link href="/app/ai/agents/new">
-            <Button className="mt-1">
-              <Plus size={14} aria-hidden className="mr-2" /> {t("Novo agente")}
-            </Button>
-          </Link>
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+            {/* Fork Nutef CRM (nutef/registro-core.md): a vitrine de funcionários prontos. */}
+            <Link href="/app/ai/funcionarios">
+              <Button>{t("Contratar funcionário de IA")}</Button>
+            </Link>
+            <Link href="/app/ai/agents/new">
+              <Button variant="outline">
+                <Plus size={14} aria-hidden className="mr-2" /> {t("Novo agente")}
+              </Button>
+            </Link>
+          </div>
         )}
       </Card>
     );
@@ -70,11 +76,17 @@ export function AgentsList({ initialData, canWrite }: Props) {
           onShowArchivedChange={setShowArchived}
         />
         {canWrite && (
-          <Link href="/app/ai/agents/new">
-            <Button>
-              <Plus size={14} aria-hidden className="mr-2" /> {t("Novo agente")}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {/* Fork Nutef CRM (nutef/registro-core.md): a vitrine de funcionários prontos. */}
+            <Link href="/app/ai/funcionarios">
+              <Button variant="outline">{t("Contratar funcionário de IA")}</Button>
+            </Link>
+            <Link href="/app/ai/agents/new">
+              <Button>
+                <Plus size={14} aria-hidden className="mr-2" /> {t("Novo agente")}
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 
