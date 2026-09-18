@@ -207,6 +207,19 @@ const GATILHO_ESPERADO: Record<string, { condicao: string | null; efeito: string
       "(`vars.RELOGIO_LIGADO`), não uma adaptação de fork — mas ela fica no mapa para " +
       "que trocar a variável por outra coisa continue passando por revisão.",
   },
+  // --- camada do fork Nutef CRM (nutef/registro-core.md) ----------------------
+  "seguranca.yml::segredos": {
+    condicao: null,
+    efeito:
+      "gitleaks sobre os commits do PR/push (PRD §35). Desligá-lo deixa segredo commitado " +
+      "chegar à main sem ninguém ver — e o repositório é privado só até alguém clonar.",
+  },
+  "seguranca.yml::audit": {
+    condicao: null,
+    efeito:
+      "`pnpm audit --audit-level=high`, informativo (continue-on-error). Sem ele, uma CVE " +
+      "alta numa dependência direta só aparece quando o Dependabot semanal abrir o PR.",
+  },
 };
 
 interface JobLido {

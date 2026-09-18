@@ -1,6 +1,9 @@
 # CLAUDE.md — DeskcommCRM
 
 > Instruções pra futuras sessões Claude trabalhando neste repo. Leitura obrigatória antes de qualquer task de código.
+>
+> **Este clone é o fork comercial Nutef CRM.** O motor abaixo não muda; a camada do produto e as
+> regras do fork estão em [`nutef/README.md`](nutef/README.md) — leia-o em seguida. @nutef/README.md
 
 **Este arquivo é a doutrina — a autoridade final sobre convenção e anti-pattern.** Complementos, na ordem em que ajudam:
 
