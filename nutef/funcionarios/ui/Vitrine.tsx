@@ -16,7 +16,9 @@ export function Vitrine() {
       {MODELOS_DE_FUNCIONARIO.map((m) => (
         <Card key={m.id} className="flex flex-col gap-3 p-5">
           <div className="flex items-start gap-3">
-            <span aria-hidden className="text-3xl leading-none">{m.avatar}</span>
+            <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-lg font-semibold text-accent">
+              {m.nome.slice(0, 1).toUpperCase()}
+            </span>
             <div className="min-w-0">
               <h2 className="text-lg font-semibold leading-tight">{m.nome}</h2>
               <p className="text-sm text-muted-foreground">{m.funcao}</p>

@@ -18,7 +18,11 @@ export interface ModeloDeFuncionario {
   id: "sdr" | "recuperador" | "pos-venda" | "atendente";
   /** Nome sugerido — o dono troca à vontade. */
   nome: string;
-  /** Um emoji como avatar provisório; upload de avatar é fase posterior. */
+  /**
+   * Avatar: hoje a vitrine desenha a INICIAL do nome num círculo (emoji não
+   * renderiza em todo navegador — medido no Chromium headless). Upload de
+   * imagem é a 3B; este campo fica reservado para ela.
+   */
   avatar: string;
   funcao: string;
   objetivo: string;
