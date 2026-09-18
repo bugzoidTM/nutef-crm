@@ -336,7 +336,7 @@ begin
   -- subir o crédito de quem ainda não pagou seria premiar o atraso.
   insert into public.ai_budgets as b (organization_id, monthly_limit_cents, enforcement_mode, enforcement_effective_at)
   select s.organization_id,
-    case when s.status = 'trialing' then 2000 else p.ai_credit_cents + s.ai_extra_credit_cents end,
+    case when s.status = 'trialing' then 400 else p.ai_credit_cents + s.ai_extra_credit_cents end,
     'bloquear', now()
   from public.billing_subscriptions s join public.billing_plans p on p.id = s.plan_id
   where s.status in ('trialing','active')

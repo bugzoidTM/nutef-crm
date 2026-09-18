@@ -75,7 +75,7 @@ describe.skipIf(semSchema)("billing do fork — isolamento e régua", () => {
   it("o sync do teto de IA arma o crédito do trial no modo que o motor lê (bloquear, vigente já)", () => {
     sql(`select public.fn_billing_sincronizar_orcamento_ia()`);
     expect(sql(`select monthly_limit_cents || '|' || enforcement_mode || '|' || (enforcement_effective_at <= now())
-                  from public.ai_budgets where organization_id = '${ORG_A}'`)).toBe("2000|bloquear|true");
+                  from public.ai_budgets where organization_id = '${ORG_A}'`)).toBe("400|bloquear|true");
   });
 
   it("membro lê a própria assinatura e não a da outra organização (RLS)", () => {
@@ -128,7 +128,7 @@ describe.skipIf(semSchema)("billing do fork — isolamento e régua", () => {
                   from public.billing_subscriptions s join public.organizations o on o.id = s.organization_id
                  where s.organization_id = '${ORG_A}'`)).toBe("suspended|suspended|billing: assinatura em atraso há mais de 10 dias");
     // suspensa: o teto que tinha fica como está (a org inteira já está fechada pelo motor)
-    expect(sql(`select monthly_limit_cents from public.ai_budgets where organization_id = '${ORG_A}'`)).toBe("2000");
+    expect(sql(`select monthly_limit_cents from public.ai_budgets where organization_id = '${ORG_A}'`)).toBe("400");
 
     // idempotente: o mesmo dia de novo não tem efeito
     expect(JSON.parse(sql(`select public.fn_billing_tick(now() + interval '18 days')::text`)).effect).toBe(false);
@@ -141,7 +141,7 @@ describe.skipIf(semSchema)("billing do fork — isolamento e régua", () => {
     expect(sql(`select s.status || '|' || s.dunning_stage || '|' || o.status || '|' || b.monthly_limit_cents || '|' || b.enforcement_mode
                   from public.billing_subscriptions s join public.organizations o on o.id = s.organization_id
                   join public.ai_budgets b on b.organization_id = s.organization_id
-                 where s.organization_id = '${ORG_A}'`)).toBe("active|0|active|5000|bloquear");
+                 where s.organization_id = '${ORG_A}'`)).toBe("active|0|active|900|bloquear");
     expect(portao()).toBe("t");
     // pagar de novo não rola o período
     expect(JSON.parse(sql(`select public.fn_billing_confirmar_pagamento(

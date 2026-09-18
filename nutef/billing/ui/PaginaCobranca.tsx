@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resumoDeBilling } from "../db";
 import { BadgeDeStatus, LinhaDeFatura } from "./blocos";
-import { EXPLICACAO_ESTAGIO, dinheiro, fraseDoPeriodo } from "./texto";
+import { EXPLICACAO_ESTAGIO, dinheiro, dinheiroDeIA, fraseDoPeriodo } from "./texto";
 
 function Barra({ usado, total }: { usado: number; total: number }) {
   const pct = total > 0 ? Math.min(100, Math.round((usado / total) * 100)) : 0;
@@ -34,7 +34,8 @@ export async function PaginaCobranca({ orgId, suporte }: { orgId: string; suport
     );
   }
 
-  const { subscription: s, plan, ai_budget, usage_month, open_invoices } = resumo;
+  const { subscription: s, plan, ai_budget, usage_month, open_invoices, usd_brl } = resumo;
+  const ia = (c: number) => dinheiroDeIA(c, usd_brl);
   const consumido = ai_budget ? Math.round(Number(ai_budget.consumed_cents)) : 0;
   const teto = ai_budget?.monthly_limit_cents ?? 0;
 
@@ -66,9 +67,9 @@ export async function PaginaCobranca({ orgId, suporte }: { orgId: string; suport
           <p className="mt-1 text-sm text-muted-foreground">
             {teto > 0 ? (
               <>
-                {dinheiro(consumido)} usados de {dinheiro(teto)}{" "}
-                {s.status === "trialing" ? <>incluídos no período de teste (o plano {plan.name} dá {dinheiro(plan.ai_credit_cents)}/mês)</> : <>incluídos no plano</>}
-                {s.ai_extra_credit_cents ? ` (+ ${dinheiro(s.ai_extra_credit_cents)} de crédito extra)` : ""}.
+                {ia(consumido)} usados de {ia(teto)}{" "}
+                {s.status === "trialing" ? <>incluídos no período de teste (o plano {plan.name} dá {ia(plan.ai_credit_cents)}/mês)</> : <>incluídos no plano</>}
+                {s.ai_extra_credit_cents ? ` (+ ${ia(s.ai_extra_credit_cents)} de crédito extra)` : ""}.
               </>
             ) : <>O crédito de IA é aplicado em até uma hora após a criação da conta.</>}
           </p>
@@ -99,7 +100,7 @@ export async function PaginaCobranca({ orgId, suporte }: { orgId: string; suport
           <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
             <li>Até {plan.max_users} usuários</li>
             <li>Até {plan.max_whatsapp_numbers} {plan.max_whatsapp_numbers === 1 ? "número" : "números"} de WhatsApp</li>
-            <li>{dinheiro(plan.ai_credit_cents)}/mês em inteligência artificial</li>
+            <li>{ia(plan.ai_credit_cents)}/mês em inteligência artificial</li>
             {plan.max_contacts ? <li>Até {plan.max_contacts.toLocaleString("pt-BR")} contatos</li> : <li>Contatos ilimitados</li>}
           </ul>
         </Card>

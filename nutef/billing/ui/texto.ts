@@ -3,7 +3,7 @@
  * tanto a server components quanto a client components. Vocabulário do
  * produto (PRD §4): "assinatura", "plano", "fatura", "crédito de IA".
  */
-import { formatCentsBRL } from "@/lib/money";
+import { formatCentsBRL, formatCentsUSD } from "@/lib/money";
 import type { Assinatura, EstagioDaRegua, StatusDeAssinatura, StatusDeFatura } from "../types";
 
 export const ROTULO_STATUS: Record<StatusDeAssinatura, string> = {
@@ -30,6 +30,17 @@ export const EXPLICACAO_ESTAGIO: Record<EstagioDaRegua, string> = {
 };
 
 export const dinheiro = (cents: number) => formatCentsBRL(cents);
+
+/**
+ * Crédito/custo de IA: o motor mede em centavos de DÓLAR e o upstream não
+ * converte câmbio (BudgetCard.tsx explica). Mostramos US$ e um "≈ R$" pela
+ * taxa da plataforma (nutef_platform_settings.usd_brl), só para leitura.
+ */
+export function dinheiroDeIA(usdCents: number, usdBrl: number | null): string {
+  const usd = formatCentsUSD(usdCents);
+  if (!usdBrl || usdBrl <= 0) return usd;
+  return `${usd} (≈ ${formatCentsBRL(Math.round(usdCents * usdBrl))})`;
+}
 
 export function dataCurta(iso: string | null | undefined): string {
   if (!iso) return "—";

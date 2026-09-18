@@ -26,6 +26,7 @@ export interface Plano {
   yearly_price_cents: number | null;
   max_users: number;
   max_whatsapp_numbers: number;
+  /** CENTAVOS DE DÓLAR — a unidade do motor (N0003). */
   ai_credit_cents: number;
   max_contacts: number | null;
   features: Record<string, unknown>;
@@ -95,6 +96,8 @@ export interface ResumoDeBilling {
   } | null;
   usage_month: UsoDoMes;
   open_invoices: Fatura[];
+  /** Taxa USD→BRL da plataforma, só para exibir ≈ R$ (null = não mostrar). */
+  usd_brl: number | null;
 }
 
 /** O que fn_billing_tick devolve. */

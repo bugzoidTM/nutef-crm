@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { BadgeDeStatus, LinhaDeFatura } from "./blocos";
-import { EXPLICACAO_ESTAGIO, dinheiro, fraseDoPeriodo } from "./texto";
+import { EXPLICACAO_ESTAGIO, dinheiro, dinheiroDeIA, fraseDoPeriodo } from "./texto";
 import {
   useBillingDaOrganizacao, useCancelarAssinatura, useEmitirFatura, useEstenderPrazo, useMarcarPaga, useTrocarPlano,
 } from "./hooks";
@@ -33,10 +33,13 @@ export function CobrancaDoTenant({ orgId }: { orgId: string }) {
   if (isError || !data) {
     return <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-10 text-center text-sm text-destructive">Esta organização não tem assinatura (ou a leitura falhou).</div>;
   }
-  const { subscription: s, plan, ai_budget, usage_month, invoices, planos } = data;
+  const { subscription: s, plan, ai_budget, usage_month, invoices, planos, usd_brl } = data;
+  const ia = (c: number) => dinheiroDeIA(c, usd_brl);
   const abertas = invoices.filter((f) => f.status === "open");
   const ocupado = trocar.isPending || estender.isPending || emitir.isPending || cancelar.isPending || pagar.isPending;
+  // crédito em CENTAVOS DE DÓLAR (unidade do motor); a fatura cobra em R$ pela taxa da plataforma
   const creditoCents = Math.round((Number(creditoReais.replace(",", ".")) || 0) * 100);
+  const cobrarCents = Math.round(creditoCents * (usd_brl ?? 0));
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -53,7 +56,7 @@ export function CobrancaDoTenant({ orgId }: { orgId: string }) {
             </div>
           </div>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <div><dt className="text-muted-foreground">Crédito de IA</dt><dd className="font-medium">{ai_budget ? `${dinheiro(Math.round(Number(ai_budget.consumed_cents)))} de ${dinheiro(ai_budget.monthly_limit_cents)}` : "sem teto ainda"}</dd></div>
+            <div><dt className="text-muted-foreground">Crédito de IA</dt><dd className="font-medium">{ai_budget ? `${ia(Math.round(Number(ai_budget.consumed_cents)))} de ${ia(ai_budget.monthly_limit_cents)}` : "sem teto ainda"}</dd></div>
             <div><dt className="text-muted-foreground">Usuários</dt><dd className="font-medium">{usage_month.users} / {plan.max_users}</dd></div>
             <div><dt className="text-muted-foreground">Números</dt><dd className="font-medium">{usage_month.whatsapp_numbers} / {plan.max_whatsapp_numbers}</dd></div>
             <div><dt className="text-muted-foreground">Mensagens no mês</dt><dd className="font-medium">{usage_month.messages_in + usage_month.messages_out}</dd></div>
@@ -119,13 +122,15 @@ export function CobrancaDoTenant({ orgId }: { orgId: string }) {
             Emitir fatura do período
           </Button>
           <div className="grid gap-2">
-            <Label htmlFor="credito">Crédito extra de IA (R$)</Label>
+            <Label htmlFor="credito">Crédito extra de IA (US$)</Label>
             <Input id="credito" inputMode="decimal" value={creditoReais} onChange={(e) => setCreditoReais(e.target.value)} />
           </div>
-          <Button className="w-full" variant="outline" disabled={ocupado || creditoCents < 100} onClick={() => emitir.mutate({ kind: "ai_credit", amount_cents: creditoCents, credit_cents: creditoCents })}>
-            Emitir fatura de crédito
+          <Button className="w-full" variant="outline" disabled={ocupado || creditoCents < 100 || cobrarCents < 100} onClick={() => emitir.mutate({ kind: "ai_credit", amount_cents: cobrarCents, credit_cents: creditoCents })}>
+            Emitir fatura de {cobrarCents >= 100 ? dinheiro(cobrarCents) : "crédito"}
           </Button>
-          <p className="text-xs text-muted-foreground">O crédito entra quando a fatura for marcada como paga.</p>
+          <p className="text-xs text-muted-foreground">
+            {usd_brl ? `US$ 1 = R$ ${usd_brl.toFixed(2)} (taxa da plataforma). ` : "Defina a taxa usd_brl na plataforma para cobrar em reais. "}O crédito entra quando a fatura for marcada como paga.
+          </p>
         </Card>
 
         {s.status !== "cancelled" ? (
