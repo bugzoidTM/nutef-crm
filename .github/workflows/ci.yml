@@ -26,6 +26,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Fork Nutef CRM (nutef/registro-core.md): repositório PRIVADO roda em runner
+    # de 2 vCPU/7 GB (o upstream público ganha 4 vCPU/16 GB), e o `tsc` deste
+    # repo estoura o heap padrão do Node ali — medido duas vezes no PR #3
+    # ("Ineffective mark-compacts near heap limit", exit 134). Teto explícito.
+    env:
+      NODE_OPTIONS: --max-old-space-size=5120
     steps:
       - uses: actions/checkout@v7
 
