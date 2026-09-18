@@ -1,4 +1,6 @@
 import { requireAuth, resolveActiveOrg } from "@/lib/auth/server";
+// Fork Nutef CRM (nutef/registro-core.md): o aviso do teste grátis no fim do onboarding.
+import { AvisoDeTeste } from "@/nutef/billing/ui/AvisoDeTeste";
 import { redirect } from "next/navigation";
 import { loadOnboardingState } from "@/app/actions/onboarding/_shared";
 import { resumoDoOnboarding } from "@/lib/onboarding/passos";
@@ -21,5 +23,10 @@ export default async function DonePage() {
   // acusando a pessoa de não fazer o que ninguém lhe pediu.
   const itens = resumoDoOnboarding(state, { lojaLigada: env.NUVEMSHOP_ENABLED });
 
-  return <DoneClient itens={itens} pecas={oQueMaisExiste()} />;
+  return (
+    <>
+      <AvisoDeTeste orgId={activeOrg.orgId} />
+      <DoneClient itens={itens} pecas={oQueMaisExiste()} />
+    </>
+  );
 }
