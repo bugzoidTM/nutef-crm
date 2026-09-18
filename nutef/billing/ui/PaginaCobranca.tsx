@@ -7,7 +7,8 @@
 import { Card } from "@/components/ui/card";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resumoDeBilling } from "../db";
-import { BadgeDeStatus, EXPLICACAO_ESTAGIO, LinhaDeFatura, dinheiro, fraseDoPeriodo } from "./blocos";
+import { BadgeDeStatus, LinhaDeFatura } from "./blocos";
+import { EXPLICACAO_ESTAGIO, dinheiro, fraseDoPeriodo } from "./texto";
 
 function Barra({ usado, total }: { usado: number; total: number }) {
   const pct = total > 0 ? Math.min(100, Math.round((usado / total) * 100)) : 0;

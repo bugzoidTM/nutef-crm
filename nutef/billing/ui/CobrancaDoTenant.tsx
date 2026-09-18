@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { BadgeDeStatus, EXPLICACAO_ESTAGIO, LinhaDeFatura, dinheiro, fraseDoPeriodo } from "./blocos";
+import { BadgeDeStatus, LinhaDeFatura } from "./blocos";
+import { EXPLICACAO_ESTAGIO, dinheiro, fraseDoPeriodo } from "./texto";
 import {
   useBillingDaOrganizacao, useCancelarAssinatura, useEmitirFatura, useEstenderPrazo, useMarcarPaga, useTrocarPlano,
 } from "./hooks";

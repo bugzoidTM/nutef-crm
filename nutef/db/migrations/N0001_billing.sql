@@ -463,3 +463,6 @@ begin
 end $$;
 revoke execute on function public.fn_billing_tick(timestamptz) from public, anon, authenticated;
 grant execute on function public.fn_billing_tick(timestamptz) to service_role;
+
+-- PostgREST guarda o catálogo em cache: sem isto, as funções novas dão "Could not find the function" até o próximo restart.
+notify pgrst, 'reload schema';

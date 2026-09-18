@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePainelDeBilling } from "./hooks";
-import { BadgeDeStatus, dataCurta, dinheiro } from "./blocos";
+import { BadgeDeStatus } from "./blocos";
+import { dataCurta, dinheiro } from "./texto";
 
 function Indicador({ titulo, valor, nota }: { titulo: string; valor: string; nota?: string }) {
   return (

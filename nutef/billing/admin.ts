@@ -152,15 +152,26 @@ export async function emitirFatura(
 ): Promise<{ invoice_id: string }> {
   const { data: s, error } = await admin
     .from("billing_subscriptions")
-    .select("id, current_period_start, current_period_end")
+    .select("id, status, billing_cycle, current_period_start, current_period_end")
     .eq("organization_id", organizationId)
     .maybeSingle();
   if (error) erro("assinatura", error);
   if (!s) throw new Error("billing_subscription_not_found");
   if (pedido.kind === "subscription") {
     const vence = new Date(); vence.setUTCDate(vence.getUTCDate() + 3);
+    // Em teste grátis, o que se fatura é o PRIMEIRO MÊS PAGO, que começa quando
+    // o teste termina — nunca a semana de teste (medido: a 1ª versão cobrava
+    // R$ 397 por 18→25/09). Fora do teste, é o período vigente.
+    let inicio = s.current_period_start;
+    let fim = s.current_period_end;
+    if (s.status === "trialing") {
+      inicio = s.current_period_end;
+      const f = new Date(inicio);
+      if (s.billing_cycle === "yearly") f.setUTCFullYear(f.getUTCFullYear() + 1); else f.setUTCMonth(f.getUTCMonth() + 1);
+      fim = f.toISOString();
+    }
     const { data, error: e2 } = await admin.rpc("fn_billing_emitir_fatura", {
-      p_sub: s.id, p_inicio: s.current_period_start, p_fim: s.current_period_end, p_vence: vence.toISOString().slice(0, 10),
+      p_sub: s.id, p_inicio: inicio, p_fim: fim, p_vence: vence.toISOString().slice(0, 10),
     });
     if (e2) erro("emitir", e2);
     return { invoice_id: data as string };

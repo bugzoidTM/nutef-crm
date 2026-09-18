@@ -193,6 +193,9 @@ cmd_schema() {
   bash "$REPO/nutef/scripts/gerar-baseline.sh" >/dev/null
   psql_privado "$DB" -v ON_ERROR_STOP=1 -f - < "$REPO/nutef/db/baseline-nutef.sql" >> "$log" 2>&1 \
     || die "apêndice do fork falhou (log: $log)"
+  # O PostgREST deste Supabase (v12.2) não recarregou o catálogo com o NOTIFY
+  # (medido: função nova dava PGRST202 até reiniciar). Reinício é barato: ~10 s.
+  docker service update -q --force "${STACK_SB}_crm-sb-rest" >/dev/null 2>&1 || true
   local n
   n=$(psql_privado "$DB" -tAc "select count(*) from information_schema.tables where table_schema='public'")
   c_grn "✓ schema aplicado — $n tabelas em public ($(psql_privado "$DB" -tAc "select count(*) from public.billing_plans") planos de billing)"
