@@ -7,6 +7,8 @@ import { catalogoComHandler } from "@/lib/ai/agents/capacidades-padrao";
 import { ligarPacote } from "@/lib/mcp/tools/selecao-por-pacote";
 import { loadOnboardingState } from "@/app/actions/onboarding/_shared";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lerAmbiente } from "@/lib/instalacao/ambiente";
+import { CHAVE_DA_INSTALACAO } from "@/app/app/ai/agents/[id]/_components/CredentialPicker";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { modeloDeFuncionario } from "./modelos";
 
@@ -20,6 +22,8 @@ export interface PreenchimentoDoFuncionario {
   /** O provedor/modelo da ORGANIZAÇÃO (o da plataforma, semeado por N0002) — o default do motor é `anthropic`. */
   provider?: "anthropic" | "openai" | "google" | "openrouter";
   model?: string;
+  /** `__instalacao__` = a chave da plataforma (CredentialPicker.CHAVE_DA_INSTALACAO) — sem isso o botão Criar fica travado até a pessoa escolher a chave. */
+  credential_id?: string;
 }
 
 const PROVEDORES = new Set(["anthropic", "openai", "google", "openrouter"]);
@@ -29,7 +33,14 @@ async function iaDaOrganizacao(admin: SupabaseClient, orgId: string): Promise<Pi
   const { data } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
   const llm = (data?.settings as { llm?: { provider?: string; default_model?: string } } | null)?.llm;
   const provider = llm?.provider && PROVEDORES.has(llm.provider) ? (llm.provider as PreenchimentoDoFuncionario["provider"]) : undefined;
-  return { ...(provider ? { provider } : {}), ...(llm?.default_model ? { model: llm.default_model } : {}) };
+  // A chave da instalação só é oferecida quando existe para o provedor; senão o
+  // picker do motor pede uma chave da organização, como antes.
+  const temChaveDaInstalacao = provider ? lerAmbiente().chavesDeProvedor[provider] === true : false;
+  return {
+    ...(provider ? { provider } : {}),
+    ...(llm?.default_model ? { model: llm.default_model } : {}),
+    ...(temChaveDaInstalacao ? { credential_id: CHAVE_DA_INSTALACAO } : {}),
+  };
 }
 
 export async function preenchimentoDoModelo(
