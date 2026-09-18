@@ -44,3 +44,15 @@ Antes de acrescentar uma linha, a pergunta é a do §63: *há uma forma de exten
   modificação de core "de verdade" e entra nesta tabela.
 - **Deploy**: os stacks de swarm em `nutef/staging/` são tradução do `docker-compose.prod.yml` +
   `docker-compose.traefik.yml`, não edição deles.
+
+## Dívida conhecida: e2e parte 3 no runner privado (2026-09-18)
+
+Sete specs (`agenda-presenca-recuperacao`, `central-avisos-destino`, `encerramento-atendimento`,
+`roteamento-por-canal`, `interface-por-vinculo`, `organizacoes-criacao-convite-e-cache`,
+`suporte-temporario`) falham DUAS vezes (retry incluído) no runner de 2 vCPU do repo privado, e
+passam no upstream (4 vCPU). Todos exercitam duas organizações + inbox em tempo real; o log do
+servidor mostra `The destination stream closed early` (resposta cortada) — sintoma de capacidade,
+não de produto. O PR #3 não toca código de produto, então `e2e` não entrou nos checks
+obrigatórios da `main` por enquanto. **Saída correta:** runner self-hosted nesta VPS (31 GB /
+muitos núcleos) para os jobs `e2e-parte`, ou o plano pago do GitHub com runner de 4 núcleos.
+Até lá, mudança de UI do fork é provada pela tela no staging (Playwright), como o §64 pede.
