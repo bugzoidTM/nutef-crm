@@ -2095,9 +2095,20 @@ case "$1" in
 esac
 exit 0
 STUB
+  # Fork Nutef CRM (nutef/registro-core.md): o repositório é PRIVADO, e um
+  # `git ls-remote` anônimo nele devolve vazio — o instalador cairia em
+  # "latest" antes de chegar ao aviso. Aponta para um bare local com tags, o
+  # mesmo desenho do caso acima; de quebra o caso deixa de depender de rede.
+  TMP_TAGS="$(mktemp -d)"; git init --quiet --bare "$TMP_TAGS/origem"
+  ( cd "$TMP_TAGS" && git clone --quiet "$TMP_TAGS/origem" w 2>/dev/null && cd w \
+    && git config user.email t@t && git config user.name t \
+    && echo x > a && git add -A && git commit --quiet -m init && git tag v1.35.0 \
+    && git push --quiet origin HEAD --tags 2>/dev/null )
+  export REPO_URL="$TMP_TAGS/origem"
   export DUBLE_GHCR=403          # pacote existe mas está PRIVADO
   saida="$(rodar install.sh --yes)"
-  unset DUBLE_GHCR
+  unset DUBLE_GHCR REPO_URL
+  rm -rf "$TMP_TAGS"
 
   if ! printf '%s' "$saida" | grep -q "construídas neste servidor"; then
     printf '  ✗ com as imagens inalcançáveis, o instalador não avisou que ia construir aqui\n'
