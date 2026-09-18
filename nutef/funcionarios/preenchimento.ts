@@ -4,7 +4,7 @@
  * catálogo de capacidades com handler.
  */
 import { catalogoComHandler } from "@/lib/ai/agents/capacidades-padrao";
-import { ligarPacote } from "@/lib/mcp/tools/selecao-por-pacote";
+import { TETO_TOOLS_POR_AGENTE } from "@/lib/mcp/tools/selecao-por-pacote";
 import { loadOnboardingState } from "@/app/actions/onboarding/_shared";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { lerAmbiente } from "@/lib/instalacao/ambiente";
@@ -59,8 +59,10 @@ export async function preenchimentoDoModelo(
   } catch {
     oQueFaz = null;
   }
-  const catalogo = catalogoComHandler();
-  const tool_ids = modelo.pacotes.reduce<string[]>((acc, p) => ligarPacote(acc, catalogo, p), []);
+  // Só o que existe no catálogo COM handler (o motor descarta o resto) e nunca
+  // acima do teto por agente.
+  const comHandler = new Set(catalogoComHandler().map((c) => c.name));
+  const tool_ids = [...new Set(modelo.capacidades)].filter((n) => comHandler.has(n)).slice(0, TETO_TOOLS_POR_AGENTE);
   return {
     ...ia,
     name: modelo.nome,
