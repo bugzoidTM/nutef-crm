@@ -37,6 +37,8 @@ import {
   type ChaveDeOrcamento,
 } from './orcamento';
 import { costCents } from './pricing';
+// Fork Nutef CRM (nutef/registro-core.md): preço pelo catálogo quando a tabela fixa não sabe.
+import { custoPeloCatalogo } from '@/nutef/billing/preco-do-catalogo';
 import { createDefaultRegistry, type ProviderRegistry } from './providers';
 import { buildStablePrefix } from './stable-prefix';
 
@@ -476,7 +478,9 @@ export async function runModelCall(db: pg.Pool, cfg: LlmEdgeConfig, input: RunMo
   // O TTL é o MESMO que gravou o prefixo estável acima: a gravação de cache custa
   // 1.25× a entrada em 5m e 2× em 1h, e supor a doutrina superfaturaria 60% da
   // parcela de cache write em quem usa o knob.
-  const cost = costCents(model, usage, cfg.cacheTtl ?? '1h');
+  // Fork Nutef CRM: a tabela fixa só conhece a família Claude; para o resto o
+  // catálogo ai_models responde (senão `null` = "não sei", como antes).
+  const cost = costCents(model, usage, cfg.cacheTtl ?? '1h') ?? (await custoPeloCatalogo(db, model, usage));
 
   const { rows } = await db.query<{ id: string }>(
     `insert into llm_calls
