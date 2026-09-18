@@ -124,7 +124,7 @@ interface CreateProps extends BaseProps {
    * modelo de funcionário (nutef/funcionarios/modelos.ts). Só o que o modelo
    * define; o resto continua saindo dos defaults de `buildState`.
    */
-  inicial?: Partial<Pick<FormState, "name" | "description" | "priority" | "system_prompt" | "tool_ids" | "handoff_keywords">>;
+  inicial?: Partial<Pick<FormState, "name" | "description" | "priority" | "system_prompt" | "tool_ids" | "handoff_keywords" | "provider" | "model">>;
 }
 
 type Props = (EditProps | CreateProps) & {
