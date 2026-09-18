@@ -5,6 +5,9 @@ import { ROLE_RANK } from "@/lib/auth/types";
 import { traduzir } from "@/lib/i18n/dicionario";
 // Fork Nutef CRM (nutef/registro-core.md): a vitrine mora em nutef/funcionarios/ui.
 import { Vitrine } from "@/nutef/funcionarios/ui/Vitrine";
+import { Equipe } from "@/nutef/funcionarios/ui/Equipe";
+import { equipeDeIA } from "@/nutef/funcionarios/equipe";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +18,7 @@ export default async function FuncionariosPage() {
   if (!activeOrg) redirect("/app");
   if (ROLE_RANK[activeOrg.role] < ROLE_RANK.manager) redirect("/403");
   const idioma = user.idioma;
+  const equipe = await equipeDeIA(await createClient(), activeOrg.orgId);
   return (
     <div className="flex h-full flex-col gap-6 p-6">
       <header>
@@ -24,7 +28,11 @@ export default async function FuncionariosPage() {
           <Link className="underline" href="/app/ai/agents">{traduzir("Ver os que já trabalham aqui", idioma)}</Link>
         </p>
       </header>
-      <Vitrine />
+      <Equipe equipe={equipe} />
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">{traduzir("Contratar mais um", idioma)}</h2>
+        <Vitrine />
+      </section>
     </div>
   );
 }
