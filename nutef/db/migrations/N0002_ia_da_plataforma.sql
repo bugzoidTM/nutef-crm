@@ -23,11 +23,12 @@ revoke all on public.nutef_platform_settings from public, anon, authenticated;
 grant all on public.nutef_platform_settings to service_role;
 -- sem policy: só o servidor lê e escreve (superadmin pelas rotas do fork)
 
--- Provedor e modelo padrão do SaaS. O modelo precisa existir em ai_models para
--- o provedor; se não existir, o trigger cai no default do catálogo.
-insert into public.nutef_platform_settings (key, value)
-values ('llm', '{"provider":"openai","model":"gpt-5.4-mini"}'::jsonb)
-on conflict (key) do nothing;
+-- O provedor/modelo do SaaS NÃO é semeado aqui: é CONFIGURAÇÃO da instalação,
+-- não schema — como APP_NAME. Quem grava a linha `llm` é o deploy
+-- (nutef/staging/deploy.sh schema, a partir de AI_PROVIDER do .env). Sem a
+-- linha, o trigger abaixo não faz nada e a org nasce como no upstream — é o
+-- que os invariantes do upstream esperam quando rodam sobre o schema do fork
+-- (eles semeiam orgs contando com o provedor padrão e injetam a chave dele).
 
 create or replace function public.fn_nutef_org_llm_da_plataforma()
 returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
@@ -57,7 +58,8 @@ create trigger trg_zz_nutef_org_llm before insert on public.organizations
   for each row execute function public.fn_nutef_org_llm_da_plataforma();
 
 -- Organizações que já existiam com o default do upstream e nunca cadastraram
--- chave própria passam para o provedor da plataforma — uma vez.
+-- chave própria passam para o provedor da plataforma — uma vez (só faz algo
+-- quando a linha `llm` existe, isto é, numa instalação configurada).
 update public.organizations o
    set settings = jsonb_set(coalesce(o.settings,'{}'::jsonb), '{llm}',
          coalesce(o.settings->'llm','{}'::jsonb)

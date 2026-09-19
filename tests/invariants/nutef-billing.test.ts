@@ -166,6 +166,18 @@ describe.skipIf(semSchema)("billing do fork — isolamento e régua", () => {
     expect(b).toBe(a);
   });
 
+  it("N0002: sem a linha `llm` da plataforma a org nasce como no upstream; com ela, no provedor do SaaS", () => {
+    const antes = sql(`select coalesce(settings->'llm'->>'provider','') from public.organizations where id = '${ORG_A}'`);
+    expect(antes).toBe("anthropic"); // o default do trigger do upstream — a linha `llm` não é semeada pelo schema
+    sql(`insert into public.nutef_platform_settings (key, value) values ('llm', '{"provider":"openai","model":"nao-existe"}'::jsonb)
+           on conflict (key) do update set value = excluded.value;
+         insert into public.organizations (id, slug, legal_name, display_name)
+           values ('b3333333-0000-4000-8000-000000000003', 'billing-c', 'Billing C', 'Billing C') on conflict (id) do nothing;`);
+    // provedor da plataforma; modelo inexistente cai no default curado do catálogo (ou fica ausente)
+    expect(sql(`select settings->'llm'->>'provider' from public.organizations where slug = 'billing-c'`)).toBe("openai");
+    sql(`delete from public.nutef_platform_settings where key = 'llm'`);
+  });
+
   it("o resumo só devolve a própria organização quando há usuário na sessão", () => {
     expect(comoUsuario(USER_A, `select public.fn_billing_resumo('${ORG_A}')->'plan'->>'slug'`)).toBe("start");
     expect(comoUsuario(USER_A, `select coalesce(public.fn_billing_resumo('${ORG_B}')::text, 'nulo')`)).toBe("nulo");

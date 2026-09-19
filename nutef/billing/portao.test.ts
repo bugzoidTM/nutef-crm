@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { envioAutomaticoPermitidoPg, type Consultavel } from "./portao";
 
-function db(resposta: () => Promise<{ rows: Array<Record<string, unknown>> }>): Consultavel {
-  return { query: (() => resposta()) as Consultavel["query"] };
+/** Dublê: a 1ª consulta (existe a função?) devolve `ha`; a 2ª devolve `resposta`. */
+function db(resposta: () => Promise<{ rows: Array<Record<string, unknown>> }>, ha = true): Consultavel {
+  return {
+    query: (async (text: string) => (/to_regprocedure/.test(text) ? { rows: [{ ha }] } : resposta())) as Consultavel["query"],
+  };
 }
 
 describe("portão do estágio 2 (envio automático permitido?)", () => {
@@ -22,12 +25,14 @@ describe("portão do estágio 2 (envio automático permitido?)", () => {
     ).toBe(true);
   });
 
-  it("a consulta pergunta ao catálogo antes de chamar a função — instalação sem o fork não quebra", async () => {
-    let sqlVisto = "";
+  it("sem a função no banco (instalação sem o fork) passa SEM chamar a função — em consulta separada", async () => {
+    const vistas: string[] = [];
     const d: Consultavel = {
-      query: (async (text: string) => { sqlVisto = text; return { rows: [{ permitido: true }] }; }) as Consultavel["query"],
+      query: (async (text: string) => { vistas.push(text); return { rows: [{ ha: false }] }; }) as Consultavel["query"],
     };
-    await envioAutomaticoPermitidoPg(d, "org");
-    expect(sqlVisto).toContain("to_regprocedure('public.fn_billing_envio_automatico_permitido(uuid)')");
+    expect(await envioAutomaticoPermitidoPg(d, "org")).toBe(true);
+    expect(vistas).toHaveLength(1);
+    expect(vistas[0]).toContain("to_regprocedure(");
+    expect(vistas[0]).not.toContain("fn_billing_envio_automatico_permitido($1");
   });
 });

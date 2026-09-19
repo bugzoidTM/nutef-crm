@@ -193,6 +193,20 @@ cmd_schema() {
   bash "$REPO/nutef/scripts/gerar-baseline.sh" >/dev/null
   psql_privado "$DB" -v ON_ERROR_STOP=1 -f - < "$REPO/nutef/db/baseline-nutef.sql" >> "$log" 2>&1 \
     || die "apêndice do fork falhou (log: $log)"
+  # IA da plataforma (N0002): configuração, não schema. AI_PROVIDER do .env vira a
+  # linha `llm`; o modelo é o padrão curado do catálogo para o provedor.
+  if [ -n "${AI_PROVIDER:-}" ]; then
+    psql_privado "$DB" -v ON_ERROR_STOP=1 -c "insert into public.nutef_platform_settings (key, value)
+      values ('llm', jsonb_build_object('provider', '$AI_PROVIDER', 'model', '${AI_MODEL:-}'))
+      on conflict (key) do update set value = excluded.value, updated_at = now();" >/dev/null
+    psql_privado "$DB" -v ON_ERROR_STOP=1 -c "update public.organizations o
+      set settings = jsonb_set(coalesce(o.settings,'{}'::jsonb), '{llm}', coalesce(o.settings->'llm','{}'::jsonb)
+          || jsonb_build_object('provider', '$AI_PROVIDER')
+          || case when '${AI_MODEL:-}' <> '' then jsonb_build_object('default_model', '${AI_MODEL:-}') else '{}'::jsonb end, true)
+      where coalesce(o.settings->'llm'->>'provider','anthropic') <> '$AI_PROVIDER'
+        and not exists (select 1 from public.ai_provider_credentials c where c.organization_id = o.id);" >/dev/null
+    c_grn "  IA da plataforma: $AI_PROVIDER${AI_MODEL:+ / $AI_MODEL}"
+  fi
   # O PostgREST deste Supabase (v12.2) não recarregou o catálogo com o NOTIFY
   # (medido: função nova dava PGRST202 até reiniciar). Reinício é barato: ~10 s.
   docker service update -q --force "${STACK_SB}_crm-sb-rest" >/dev/null 2>&1 || true

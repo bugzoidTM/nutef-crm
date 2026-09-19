@@ -18,13 +18,22 @@ export interface Consultavel {
   ): Promise<{ rows: R[] }>;
 }
 
+/**
+ * DUAS consultas, de propósito. Uma só — `case when to_regprocedure(...) is null
+ * then true else fn(...) end` — abortava a transação do turno onde o fork não
+ * está instalado: o Postgres resolve o nome da função ao PLANEJAR, mesmo no
+ * ramo que não executa, e "function does not exist" dentro de `begin` deixa
+ * a conexão em "current transaction is aborted" (medido: 11 invariantes do
+ * upstream vermelhos). `to_regprocedure` sozinho nunca erra.
+ */
 export async function envioAutomaticoPermitidoPg(db: Consultavel, organizationId: string): Promise<boolean> {
   try {
+    const { rows: existe } = await db.query<{ ha: boolean }>(
+      `select to_regprocedure('public.fn_billing_envio_automatico_permitido(uuid)') is not null as ha`,
+    );
+    if (existe[0]?.ha !== true) return true;
     const { rows } = await db.query<{ permitido: boolean | null }>(
-      `select case
-                when to_regprocedure('public.fn_billing_envio_automatico_permitido(uuid)') is null then true
-                else public.fn_billing_envio_automatico_permitido($1::uuid)
-              end as permitido`,
+      `select public.fn_billing_envio_automatico_permitido($1::uuid) as permitido`,
       [organizationId],
     );
     return rows[0]?.permitido !== false;
