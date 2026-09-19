@@ -61,8 +61,8 @@ sinal de que algo que deveria ser camada virou modificação de core.
 |---|---|---|
 | 0 | Fundação: identidade, upstream, staging, CI | **feita em 2026-09-18** |
 | 1 | Billing: planos, assinaturas, faturas, trial, uso, suspensão | 1A+1C feitas 2026-09-18 (`fase-1-billing.md`); 1B Asaas aguarda credenciais |
-| 2 | Onboarding em < 15 min | em curso (`fase-2-onboarding.md`): IA da plataforma + aviso do teste; medição aguarda WhatsApp e chave |
-| 3 | Funcionários de IA (UX sobre o motor de agentes) | |
-| 4 | Templates: imobiliária, serviços, clínica | |
+| 2 | Onboarding em < 15 min | **feita 2026-09-18** (`fase-2-onboarding.md`): IA da plataforma, aviso do teste, IA medida; o relógio completo só com WhatsApp pareado |
+| 3 | Funcionários de IA (UX sobre o motor de agentes) | **feita 2026-09-18** (`fase-3-funcionarios.md`): modelos Ana/Carlos/Marina/atendente, equipe com métricas, 19 ensaios |
+| 4 | Templates: imobiliária, serviços, clínica | em curso (`fase-4-templates.md`) |
 | 5 | Superadmin | |
 | 6 | 10 clientes pagantes | |

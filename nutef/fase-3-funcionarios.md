@@ -39,7 +39,18 @@ limpeza, parcelamento, estacionamento, remarcação, dor, laser, valor, criança
 - Custo: todas as chamadas agora têm preço (fallback pelo catálogo) e debitam o teto de IA
   (US$ 4 no trial) — 19 ensaios ≈ 3 centavos de dólar.
 
-## 3B — próximo
+## Fechamento (2026-09-18)
+
+Fase 3 **concluída** com o §8 coberto pelo motor + 3A: nome, função, objetivo, personalidade/tom
+(prompt), base de conhecimento (acervo), permissões/ferramentas (capacidades curadas), canais,
+funis (escopo), regras de transferência (palavras + handoff), horário de atuação ("Só atender em
+horário de funcionamento", no formulário do motor), métricas (página da equipe). Adiados, com o
+critério do PRD §60 (não vende mais, não reduz trabalho, não evita perda): avatar por upload,
+limite de IA por funcionário (o teto por organização já cobra), renomear "Agentes" no menu (o
+upstream diz "agente" em dezenas de telas; só o menu ficaria diferente), follow-ups de fábrica
+(vêm com os templates da Fase 4).
+
+## 3B — se um cliente pedir
 
 - Horário de atuação e avatar na tela do funcionário (vocabulário comercial sobre
   `trigger_config.business_hours`).
