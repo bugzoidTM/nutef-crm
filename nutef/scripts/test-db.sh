@@ -5,6 +5,9 @@
 # as tabelas do billing. Mesmos knobs do script do upstream (TEST_DB_IMAGE, etc.).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+# O script do upstream chama `vitest` pelo nome (o pnpm test:db põe node_modules/.bin
+# no PATH); fora do pnpm — CI e shell — ele morre com 127. Garantimos o PATH aqui.
+export PATH="$PWD/node_modules/.bin:$PATH"
 bash nutef/scripts/gerar-baseline.sh >/dev/null
 tmp="$(mktemp "${TMPDIR:-/tmp}/nutef-baseline.XXXXXX.sql")"
 trap 'rm -f "$tmp"' EXIT
