@@ -19,3 +19,20 @@ auditado (`pipeline.updated` com `nutef_template`).
 
 Provas: `nutef/templates/segmentos.test.ts` valida cada template contra os schemas do motor
 (campos, gatilho, grafo do fluxo) e a existência do pacote de funil.
+
+## Provado no staging (2026-09-18, pela tela)
+
+- "Seu segmento" sugeriu **Clínica** pelo texto do cadastro; "Aplicar modelo" gravou o segmento,
+  acrescentou **5 campos** ao funil padrão, criou o fluxo "Retomada — quem parou de responder
+  (clínica)" em rascunho (8 nós, gatilho por silêncio de 24 h; aparece na tela de Follow-ups) e
+  auditou (`pipeline.updated` com `nutef_template=clinica`).
+- "Contratar Ana" passou a nascer com o roteiro de clínica no prompt (procedimento, primeira vez,
+  convênio, urgência, horário) e **sem nenhum clique além de Criar** (provedor, modelo e chave da
+  plataforma já escolhidos).
+- O ensaio da Ana com roteiro ficou para as 7h: o motor veta envios fora da janela anti-banimento
+  (7h–22h, America/Sao_Paulo) inclusive no ensaio (`outside_window`) — e o ensaio caiu depois das
+  22h. Antes disso, a 1ª versão do roteiro fez o modelo gastar o turno em `update_lead_state` /
+  `save_lead_note` sem `send_message`: a conduta ganhou "em todo turno, responda ao cliente;
+  anotar no CRM vem depois da resposta".
+- Fica no staging uma "Ana (clínica)" em rascunho (org Nutef) além da Ana original — apagar ou
+  publicar é decisão do dono.

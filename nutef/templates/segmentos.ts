@@ -206,6 +206,6 @@ export function roteiroParaPrompt(t: TemplateDeSegmento): string {
 Segmento: ${t.nome}.
 Roteiro de qualificação — uma pergunta por vez, na ordem, pulando o que a pessoa já disse:
 ${perguntas}
-Registre no CRM os campos: ${campos}.
-Passe para o vendedor quando ${t.sinalDeOportunidade}.`;
+Passe para o vendedor quando ${t.sinalDeOportunidade}.
+Quando souber um desses dados, anote no CRM (campos: ${campos}) — mas SEMPRE depois de responder ao cliente, nunca no lugar da resposta.`;
 }
