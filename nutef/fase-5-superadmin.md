@@ -23,3 +23,11 @@ PDF de LGPD do upstream traça.
 
 "Saúde" em uma palavra, o pior sinal ganha: org suspensa › incidente aberto › WhatsApp fora ›
 IA no teto › sem WhatsApp › ok.
+
+## Provado no staging (2026-09-19, pela tela)
+
+`/admin/dashboard`: faixa **Negócio** com MRR/ARR, clientes ativos (1 organização · 1 em teste),
+inadimplência, cancelamentos, IA no mês (US$ 0,22 · 171 chamadas), WhatsApp 0/0, erros 0, infra —
+em cima dos KPIs operacionais do motor. `/admin/cobranca` ("Clientes e cobrança"): 11 colunas;
+a linha Nutef mostra Start · Período de teste · 1 usuário · WhatsApp 0/0 · IA US$ 0,22 / US$ 4,00 ·
+sem conversas · saúde "sem WhatsApp". Zero erros de console/4xx.
