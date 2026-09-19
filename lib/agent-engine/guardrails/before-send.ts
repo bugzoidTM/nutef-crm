@@ -74,6 +74,7 @@ import { detectarVazamentoInterno, renderVetoDeVazamento } from './vazamento-int
 import { capabilitiesOf, DEFAULT_CHANNEL_PROVIDER } from '@/lib/channels/capabilities';
 import { isWindowOpen } from './messaging-window';
 import type { ChannelProvider } from '@/lib/channels/capabilities';
+import { envioAutomaticoPermitidoPg } from '@/nutef/billing/portao';
 
 /** O que os gates enxergam — carregado UMA vez sob o lock, por tentativa de envio. */
 export interface GateContext {
@@ -173,6 +174,8 @@ export interface GateContext {
    * `open_human_case` neste turno) tornam o gate no-op também — só veta quando a candidata
    * promete humano E não há caso nenhum.
    */
+  /** Fork Nutef CRM: portão do estágio 2 da régua de cobrança. Ausente = passa. */
+  billing?: { automaticSendAllowed: boolean };
   casesEnabled: boolean;
   hasOpenCase: boolean;
   openedCaseThisTurn: boolean;
@@ -283,6 +286,29 @@ export interface Gate {
   readonly name: string;
   evaluate(ctx: GateContext): GateVerdict;
 }
+
+/**
+ * Gate 2.5 — cobrança (fork Nutef CRM, nutef/fase-1-billing.md; registro em
+ * nutef/registro-core.md). Estágio 2 da régua: assinatura em atraso há 3 dias
+ * bloqueia envios AUTOMÁTICOS; o humano continua respondendo pela Inbox. Fica
+ * depois dos vetos de conformidade (stop, lgpd) e antes do anti-ban: não gasta
+ * janela de pacing com um envio que não vai sair. `ctx.billing` ausente = passa
+ * (instalação sem billing, ou testes que montam o contexto à mão).
+ */
+const billingGate: Gate = {
+  name: 'billing',
+  evaluate: (ctx) =>
+    ctx.billing && ctx.billing.automaticSendAllowed === false
+      ? {
+          pass: false,
+          code: 'cobranca_em_atraso',
+          reason:
+            'a assinatura desta organização está em atraso e os envios automáticos foram ' +
+            'pausados (estágio 2 da régua de cobrança); uma pessoa ainda pode responder pela ' +
+            'Inbox. Regulariza em Configurações › Cobrança.',
+        }
+      : { pass: true },
+};
 
 /** Gate 1 — STOP/opt-out/força-humano: veto IRREVOGÁVEL (regra dura nº 2), 1ª linha. */
 const stopGate: Gate = {
@@ -706,8 +732,11 @@ const spinningGate: Gate = {
  * `GateContext.agenda`): só o caminho do agente o arma quando o agente publicado tem
  * `crm_book_appointment` nas tools, então a v7 também não muda o destino de nenhum envio que
  * já existia fora desse caso — muda o TRACE e passa a medir/impedir a promessa vazia.
+ * v8 (fork Nutef CRM) = insere `billingGate` entre `lgpd` e `pacing` — estágio 2 da régua
+ * de cobrança. Sem `ctx.billing` ele passa, então a v8 também não muda o destino de nenhum
+ * envio de instalação sem billing — muda o TRACE.
  */
-export const BEFORE_SEND_CHAIN_VERSION = 7;
+export const BEFORE_SEND_CHAIN_VERSION = 8;
 
 /**
  * Ordem FINAL da cadeia (F4-08/F4-09; edge-contract §before_send / blueprint órgão 5) — DADO
@@ -730,6 +759,7 @@ export const BEFORE_SEND_CHAIN_VERSION = 7;
 export const BEFORE_SEND_GATES: readonly Gate[] = [
   stopGate,
   lgpdGate,
+  billingGate,
   pacingGate,
   messagingWindowGate,
   spinningGate,
@@ -1036,11 +1066,14 @@ export async function runBeforeSend(args: RunBeforeSendArgs): Promise<BeforeSend
       args.channelSessionId,
     );
 
+    const billing = { automaticSendAllowed: await envioAutomaticoPermitidoPg(client, args.tenantId) };
+
     const ctx: GateContext = {
       now: args.now,
       body: args.body,
       optedOut,
       provider,
+      billing,
       messagingWindow: { lastInboundAt, ...(args.isTemplate === true ? { isTemplate: true } : {}) },
       pacing: {
         knobs: pacingCfg.knobs,

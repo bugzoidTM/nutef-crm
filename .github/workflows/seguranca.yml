@@ -6,6 +6,10 @@
 #   segredos  — gitleaks sobre o que o evento trouxe (PR: os commits do PR;
 #               push: o commit) com a config `.gitleaks.toml`, que documenta
 #               cada falso positivo da linha de base. Achado = vermelho.
+#   nutef-invariants — a suíte de invariantes do upstream (RLS, definer, LGPD,
+#               vocabulário…) contra o schema COMPLETO do fork: baseline +
+#               nutef/db/baseline-nutef.sql (nutef/scripts/test-db.sh). É o que
+#               prova que as tabelas do billing não abrem buraco entre tenants.
 #   audit     — `pnpm audit` de vulnerabilidades ALTAS+; informativo por
 #               enquanto (continue-on-error NO PASSO — no job ele deixa o check
 #               vermelho mesmo assim, medido no PR #3): o upstream já tem
@@ -46,3 +50,16 @@ jobs:
       - name: pnpm audit (alta ou crítica) — informativo
         continue-on-error: true
         run: pnpm audit --audit-level=high
+  nutef-invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      TEST_DB_IMAGE: pgvector/pgvector:pg15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar-node
+        timeout-minutes: 5
+      - name: invariantes sobre baseline + apêndice do fork (pg15)
+        run: bash nutef/scripts/test-db.sh

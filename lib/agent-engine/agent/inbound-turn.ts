@@ -1245,8 +1245,14 @@ export function parseCheckpointText(text: string): CheckpointContent {
   try {
     raw = JSON.parse(text.slice(start, end + 1));
   } catch {
+    // Fork Nutef CRM (nutef/registro-core.md): a FORMA do texto, nunca o texto
+    // (pode carregar PII). Medido no staging: 2 de 7 ensaios com gpt-5.4-mini
+    // caíam aqui e ninguém sabia se era cerca de código, prosa ou corte.
+    const abre = (text.match(/\{/g) ?? []).length;
+    const fecha = (text.match(/\}/g) ?? []).length;
+    const forma = `len=${text.length} chaves=${abre}/${fecha} cerca=${/```/.test(text)} inicio=${JSON.stringify(text.slice(0, 1))} fim=${JSON.stringify(text.slice(-1))}`;
     throw new Error(
-      'JSON de checkpoint inválido no fechamento do turno — run re-tentado pela fila',
+      `JSON de checkpoint inválido no fechamento do turno — run re-tentado pela fila (${forma})`,
     );
   }
   const parsed = checkpointContentSchema.safeParse(raw);

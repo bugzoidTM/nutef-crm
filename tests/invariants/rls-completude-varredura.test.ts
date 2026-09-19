@@ -74,6 +74,19 @@ interface Excecao {
  * `countAs`/`writeCountAs`, que fazem o mesmo) + JWT do usuário + contagem de
  * linhas da OUTRA organização, não uma leitura como superusuário.
  */
+/**
+ * Camada do fork Nutef CRM (nutef/registro-core.md): tabelas que só existem no
+ * banco montado por nutef/scripts/test-db.sh (baseline + nutef/db/baseline-nutef.sql).
+ * No baseline puro do upstream elas não existem — por isso ficam numa lista à
+ * parte, cuja regra "ainda existe" só vale quando o inventário as encontra.
+ */
+const PROVA_PROPRIA_DO_FORK: readonly Excecao[] = [
+  { tabela: "billing_subscriptions", razao: "tests/invariants/nutef-billing.test.ts — dois tenants reais: leitura positiva local/negativa cruzada por JWT; escrita authenticated negada; régua de cobrança provada de ponta a ponta" },
+  { tabela: "billing_invoices", razao: "tests/invariants/nutef-billing.test.ts — insert direto negado a authenticated; leitura cruzada por JWT devolve zero" },
+  { tabela: "billing_usage", razao: "tests/invariants/nutef-billing.test.ts — insert direto negado; agregação é consulta idempotente" },
+  { tabela: "billing_events", razao: "tests/invariants/nutef-billing.test.ts — sem SELECT para authenticated (recibo server-only de webhook)" },
+];
+
 const PROVA_PROPRIA: readonly Excecao[] = [
   { tabela: "organization_extensions", razao: "tests/invariants/extensoes-declarativas.test.ts — dois tenants com vínculos reais: leitura positiva local/negativa cruzada por JWT, revogação de membership e escrita direta negada" },
   { tabela: "extension_operations", razao: "tests/invariants/extensoes-declarativas.test.ts — recibo de instância fechado a anon/authenticated, inclusive configure com organização; RPCs service-only revalidam ator e papel" },
@@ -391,6 +404,7 @@ describe("varredura: completude de RLS sobre toda tabela com organization_id", (
     const conhecidas = new Set<string>([
       ...TABLES,
       ...PROVA_PROPRIA.map((e) => e.tabela),
+      ...PROVA_PROPRIA_DO_FORK.map((e) => e.tabela),
       ...DEBITO_CONHECIDO.map((e) => e.tabela),
     ]);
     const semRegistro = inventario()
@@ -416,6 +430,15 @@ describe("varredura: completude de RLS sobre toda tabela com organization_id", (
     for (const { tabela } of PROVA_PROPRIA) {
       const achada = porTabela.get(tabela);
       expect(achada, `PROVA_PROPRIA cita tabela inexistente: ${tabela}`).toBeDefined();
+      expect(
+        achada?.rlsLigada,
+        `${tabela} está em PROVA_PROPRIA mas perdeu RLS — não é mais exceção, é tabela exposta`,
+      ).toBe(true);
+    }
+    // As do fork só são cobradas quando o schema do fork está neste banco.
+    for (const { tabela } of PROVA_PROPRIA_DO_FORK) {
+      const achada = porTabela.get(tabela);
+      if (!achada) continue;
       expect(
         achada?.rlsLigada,
         `${tabela} está em PROVA_PROPRIA mas perdeu RLS — não é mais exceção, é tabela exposta`,

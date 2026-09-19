@@ -37,7 +37,7 @@ Fora do git: `/root/nutef-crm-deploy/staging/` — `.env`, `supabase/db/data` (d
 ```bash
 bash nutef/staging/deploy.sh validar         # 11 sondas — o "está tudo no ar?"
 bash nutef/staging/deploy.sh crm             # re-deploy do app (imagem nova: mude VERSAO_STAGING no deploy.sh)
-bash nutef/staging/deploy.sh schema          # re-aplicar o baseline (idempotente) depois de um sync do upstream
+bash nutef/staging/deploy.sh schema          # baseline do upstream + apêndice do fork (idempotentes) — depois de sync ou migration nova
 docker service logs nutefcrm_crm-app --tail 100
 docker service logs nutefcrm_crm-worker --tail 100
 ```

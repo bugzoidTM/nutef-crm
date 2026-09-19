@@ -45,7 +45,7 @@ describe("montarRequisicaoDeProva", () => {
     // not supported with this model. Use 'max_completion_tokens' instead."
     // Isso derrubava a prova de crédito no onboarding com toda chave válida.
     const openai = montarRequisicaoDeProva("openai", "k", "gpt-5.6-terra");
-    expect(openai!.body).toMatchObject({ max_completion_tokens: 1 });
+    expect(openai!.body).toMatchObject({ max_completion_tokens: 16 });
     expect(openai!.body).not.toHaveProperty("max_tokens");
   });
 

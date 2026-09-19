@@ -275,6 +275,19 @@ export const NAV_CATALOG = [
   },
 
   // ---- Agente de IA — montar, ensinar, acompanhar ----
+  // Fork Nutef CRM (nutef/registro-core.md): a vitrine de funcionários prontos (PRD §8).
+  {
+    href: "/app/ai/funcionarios",
+    label: "Funcionários de IA",
+    description: "Modelos prontos para contratar: SDR, recuperação de leads, pós-venda.",
+    icon: "Robot",
+    group: "ia",
+    section: "Montar o agente",
+    minRole: "manager",
+    // Fora do sidebar: o grupo de IA fixa três itens (navegacao-registry.test.ts);
+    // a porta é o hub "Ver tudo em IA" e o botão na lista de agentes.
+    sidebar: false,
+  },
   {
     href: "/app/ai/agents",
     label: "Agentes",

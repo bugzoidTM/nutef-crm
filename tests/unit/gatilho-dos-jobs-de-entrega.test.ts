@@ -214,6 +214,13 @@ const GATILHO_ESPERADO: Record<string, { condicao: string | null; efeito: string
       "gitleaks sobre os commits do PR/push (PRD §35). Desligá-lo deixa segredo commitado " +
       "chegar à main sem ninguém ver — e o repositório é privado só até alguém clonar.",
   },
+  "seguranca.yml::nutef-invariants": {
+    condicao: null,
+    efeito:
+      "A suíte de invariantes do upstream rodando sobre baseline + nutef/db/baseline-nutef.sql. " +
+      "Desligá-la deixa uma tabela do billing sem RLS chegar à main com o `invariants` do upstream " +
+      "verde — ele mede um banco onde as tabelas do fork não existem.",
+  },
   "seguranca.yml::audit": {
     condicao: null,
     efeito:

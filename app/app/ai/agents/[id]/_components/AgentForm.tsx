@@ -119,6 +119,12 @@ interface EditProps extends BaseProps {
 
 interface CreateProps extends BaseProps {
   mode: "create";
+  /**
+   * Fork Nutef CRM (nutef/registro-core.md): pré-preenchimento vindo de um
+   * modelo de funcionário (nutef/funcionarios/modelos.ts). Só o que o modelo
+   * define; o resto continua saindo dos defaults de `buildState`.
+   */
+  inicial?: Partial<Pick<FormState, "name" | "description" | "priority" | "system_prompt" | "tool_ids" | "handoff_keywords" | "provider" | "model" | "credential_id">>;
 }
 
 type Props = (EditProps | CreateProps) & {
@@ -314,7 +320,7 @@ export function AgentForm(props: Props) {
       const ref = props.base ?? props.draft ?? props.published;
       return buildState({ agent: props.agent, version: ref, t });
     }
-    return buildState({ version: null, t });
+    return { ...buildState({ version: null, t }), ...(props.inicial ?? {}) };
   }, [isEdit, props, t]);
 
   const [form, setForm] = React.useState<FormState>(baseline);

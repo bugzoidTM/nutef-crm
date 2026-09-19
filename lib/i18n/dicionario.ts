@@ -9350,6 +9350,14 @@ export const DICIONARIO: Traducoes = {
   'A origem aparece na ficha do contato e no filtro "Site (landing page)" da lista de contatos.': {
     es: 'El origen aparece en la ficha del contacto y en el filtro "Sitio (landing page)" de la lista de contactos.',
   },
+  // --- fork Nutef CRM (nutef/registro-core.md): tela de cobrança ---
+  "Cobrança": { es: "Facturación" },
+  "Funcionários de IA": { es: "Empleados de IA" },
+  "Escolha um modelo pronto; você revisa como ele fala e o que pode fazer antes de publicar.": { es: "Elige un modelo listo; revisas cómo habla y qué puede hacer antes de publicar." },
+  "Ver os que já trabalham aqui": { es: "Ver los que ya trabajan aquí" },
+  "Contratar funcionário de IA": { es: "Contratar empleado de IA" },
+  "Contratar mais um": { es: "Contratar uno más" },
+  "Modelos prontos para contratar: SDR, recuperação de leads, pós-venda.": { es: "Modelos listos para contratar: SDR, recuperación de leads, posventa." },
 };
 
 /**
