@@ -11,6 +11,8 @@ import { lerAmbiente } from "@/lib/instalacao/ambiente";
 import { CHAVE_DA_INSTALACAO } from "@/app/app/ai/agents/[id]/_components/CredentialPicker";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { modeloDeFuncionario } from "./modelos";
+import { escolherPacotePorTexto } from "@/lib/onboarding/sugerir-funil";
+import { roteiroParaPrompt, templateDoSegmento } from "@/nutef/templates/segmentos";
 
 export interface PreenchimentoDoFuncionario {
   name?: string;
@@ -59,6 +61,12 @@ export async function preenchimentoDoModelo(
   } catch {
     oQueFaz = null;
   }
+  // Segmento: o que o dono escolheu (Aplicar modelo) ou, na falta, o que o
+  // texto do onboarding sugere — a mesma inferência do funil do upstream.
+  const { data: orgRow } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+  const escolhido = (orgRow?.settings as { nutef?: { segmento?: string } } | null)?.nutef?.segmento;
+  const segmento = templateDoSegmento(escolhido ?? (oQueFaz ? escolherPacotePorTexto(oQueFaz).id : "generico"));
+  const roteiro = modelo.id === "sdr" ? roteiroParaPrompt(segmento) : `Segmento: ${segmento.nome}.`;
   // Só o que existe no catálogo COM handler (o motor descarta o resto) e nunca
   // acima do teto por agente.
   const comHandler = new Set(catalogoComHandler().map((c) => c.name));
@@ -68,7 +76,7 @@ export async function preenchimentoDoModelo(
     name: modelo.nome,
     description: `${modelo.funcao} — ${modelo.objetivo}`,
     priority: modelo.priority,
-    system_prompt: modelo.prompt({ empresa: orgName, oQueFaz }),
+    system_prompt: modelo.prompt({ empresa: orgName, oQueFaz, roteiro }),
     tool_ids,
     handoff_keywords: ["falar com humano", "atendente", "pessoa real", ...modelo.handoff_keywords],
   };

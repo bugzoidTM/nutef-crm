@@ -41,8 +41,12 @@ export interface ModeloDeFuncionario {
   handoff_keywords: readonly string[];
   /** Ordem de prioridade entre funcionários da mesma org (menor = tenta antes). */
   priority: number;
-  /** "Como esse funcionário deve atender?" — o system prompt, já com o nome da empresa. */
-  prompt: (ctx: { empresa: string; oQueFaz: string | null }) => string;
+  /**
+   * "Como esse funcionário deve atender?" — o system prompt, já com o nome da
+   * empresa. `roteiro` é o trecho do template do segmento (Fase 4): a Ana
+   * recebe o roteiro de qualificação inteiro; os outros, só o contexto.
+   */
+  prompt: (ctx: { empresa: string; oQueFaz: string | null; roteiro?: string }) => string;
 }
 
 const onde = (c: { empresa: string; oQueFaz: string | null }) =>
@@ -111,6 +115,7 @@ Como você trabalha:
 5. Quando a pessoa demonstrar intenção de comprar, agendar ou pedir proposta, passe para um vendedor e avise que alguém da equipe vai assumir.
 
 Tom: caloroso, direto e profissional — como uma recepcionista experiente que gosta de ajudar.
+${c.roteiro ?? ""}
 ${BASE_DE_CONDUTA}`,
   },
   {
@@ -164,6 +169,7 @@ Como você trabalha:
 4. Se ela voltar a se interessar, atualize o CRM e passe para o vendedor responsável, avisando que a negociação reabriu.
 
 Tom: leve, respeitoso, sem pressão. Você não vende; você reabre a porta.
+${c.roteiro ?? ""}
 ${BASE_DE_CONDUTA}`,
   },
   {
@@ -216,6 +222,7 @@ Como você trabalha:
 5. Se o cliente mencionar uma nova necessidade, registre no CRM e avise a equipe comercial.
 
 Tom: acolhedor e atencioso — como alguém que se importa se deu certo.
+${c.roteiro ?? ""}
 ${BASE_DE_CONDUTA}`,
   },
   {
