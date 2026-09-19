@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Assinatura, Fatura, Plano, StatusDeAssinatura } from "./types";
 import { sincronizarOrcamentoDeIA } from "./db";
+import { saudePorOrganizacao, type SaudeDaOrganizacao } from "@/nutef/superadmin/kpis";
 
 export interface LinhaDoPainel {
   organization_id: string;
@@ -16,6 +17,8 @@ export interface LinhaDoPainel {
   subscription: Assinatura;
   plan: Pick<Plano, "slug" | "name" | "monthly_price_cents" | "yearly_price_cents">;
   open_invoices_cents: number;
+  /** Fase 5 (§28): usuários, números, IA, última atividade, saúde — null se a leitura falhar. */
+  saude: SaudeDaOrganizacao | null;
 }
 
 export interface PainelDeBilling {
@@ -41,6 +44,7 @@ export async function painelDeBilling(admin: SupabaseClient): Promise<PainelDeBi
     .select("organization_id, amount_cents, due_date")
     .eq("status", "open");
   if (e2) erro("faturas abertas", e2);
+  const saude = await saudePorOrganizacao(admin).catch(() => new Map<string, SaudeDaOrganizacao>());
 
   const abertasPorOrg = new Map<string, number>();
   let vencidas = 0;
@@ -74,6 +78,7 @@ export async function painelDeBilling(admin: SupabaseClient): Promise<PainelDeBi
       subscription: sub,
       plan,
       open_invoices_cents: abertasPorOrg.get(sub.organization_id) ?? 0,
+      saude: saude.get(sub.organization_id) ?? null,
     });
   }
   const total = [...abertasPorOrg.values()].reduce((a, b) => a + b, 0);

@@ -40,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/incidents", label: "Incidents", icon: Warning },
   { href: "/admin/usage", label: "Usage", icon: ChartBar },
   // Fork Nutef CRM (nutef/registro-core.md): MRR, trials e inadimplência.
-  { href: "/admin/cobranca", label: "Cobrança", icon: Receipt },
+  { href: "/admin/cobranca", label: "Clientes", icon: Receipt },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/platform-admins", label: "Platform Admins", icon: ShieldCheck },
   // A porta da tela de marca. Ela NÃO entra em `lib/navigation/registry.ts`:
